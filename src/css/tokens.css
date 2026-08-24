@@ -1,0 +1,137 @@
+/* ============================================================
+   StarkLab Web · Sistema visual
+   Paleta tomada del documento de producto (pág. 02.1).
+   Regla: el color de marca (rojo→naranja) sólo se usa en marca,
+   acciones primarias y foco. Todo el resto del color viene del
+   dato — hábito, categoría o estado. Nunca es decorativo.
+   ============================================================ */
+
+:root {
+  /* — Base (tema oscuro, el de por defecto) — */
+  --bg:            #0A0A0D;
+  --bg-elev:       #0D1014;
+  --card:          #101418;
+  --card-2:        #141A20;
+  --border:        #1F2A2C;
+  --border-soft:   #171F22;
+  --text:          #E8E8EC;
+  --text-2:        #8A959A;
+  --text-3:        #5C666B;
+
+  /* — Acento de marca — */
+  --accent:        #FF3B3B;
+  --accent-2:      #FF9D4B;
+  --accent-ink:    #FFFFFF;
+  --grad:          linear-gradient(100deg, #FF3B3B 0%, #FF6B3B 45%, #FF9D4B 100%);
+  --grad-soft:     linear-gradient(100deg, rgba(255,59,59,.18), rgba(255,157,75,.18));
+
+  /* — Colores por hábito / categoría (fijos, se repiten en grilla, gráficos y listas) — */
+  --c-rojo:        #FF5B5B;
+  --c-cian:        #4BD0FF;
+  --c-verde:       #5BD88F;
+  --c-violeta:     #C98BFF;
+  --c-ambar:       #FFB84B;
+  --c-coral:       #FF8B6B;
+  --c-rosa:        #FF9DC4;
+  --c-amarillo:    #F5E05B;
+
+  /* — Estados del sistema — */
+  --ok:            #3DDC84;
+  --warn:          #FFB020;
+  --err:           #FF5C5C;
+  --info:          #4B9DFF;
+
+  /* — Modo Pausa (escena nocturna, paleta aparte y más fría) — */
+  --night-bg:      #05070D;
+  --night-moon:    #CFC9BD;
+  --night-text:    #7C8A9A;
+  --night-hour:    #EEF2F5;
+
+  /* — Tipografía — */
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --fs-display: clamp(2rem, 1.2rem + 3.4vw, 3.25rem);
+  --fs-h1:      clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
+  --fs-h2:      clamp(1.15rem, 1rem + .7vw, 1.4rem);
+  --fs-h3:      1.02rem;
+  --fs-body:    .935rem;
+  --fs-sm:      .82rem;
+  --fs-xs:      .72rem;
+  --fs-micro:   .655rem;
+
+  /* — Espaciado (escala de 4) — */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s7: 32px; --s8: 40px;
+  --s9: 56px; --s10: 72px;
+
+  /* — Radios — */
+  --r-sm: 6px; --r: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 24px; --r-full: 999px;
+
+  /* — Elevación — */
+  --sh-1: 0 1px 2px rgba(0,0,0,.4);
+  --sh-2: 0 4px 16px -4px rgba(0,0,0,.55);
+  --sh-3: 0 18px 48px -12px rgba(0,0,0,.7);
+  --glow: 0 0 0 1px rgba(255,59,59,.35), 0 8px 28px -8px rgba(255,59,59,.45);
+
+  /* — Movimiento — */
+  --e-out:   cubic-bezier(.16,1,.3,1);
+  --e-inout: cubic-bezier(.65,0,.35,1);
+  --e-spring:cubic-bezier(.34,1.56,.64,1);
+  --t-fast: .14s; --t: .24s; --t-slow: .5s;
+
+  /* — Layout — */
+  --sidebar: 236px;
+  --topbar: 56px;
+  --maxw: 1480px;
+}
+
+/* ————————————————— Tema claro ————————————————— */
+:root[data-theme="light"] {
+  --bg:          #F4F5F7;
+  --bg-elev:     #EDEFF2;
+  --card:        #FFFFFF;
+  --card-2:      #F7F8FA;
+  --border:      #DDE2E7;
+  --border-soft: #E9EDF1;
+  --text:        #12161A;
+  --text-2:      #5B676F;
+  --text-3:      #8B979E;
+
+  --c-rojo:     #E23D3D;
+  --c-cian:     #0E9FD8;
+  --c-verde:    #24A860;
+  --c-violeta:  #9B4FE0;
+  --c-ambar:    #D98A00;
+  --c-coral:    #E05C36;
+  --c-rosa:     #DB5F92;
+  --c-amarillo: #B99700;
+
+  --ok:   #14A05A;
+  --warn: #C77A00;
+  --err:  #DB3B3B;
+  --info: #1F6FD8;
+
+  --sh-1: 0 1px 2px rgba(16,20,24,.06);
+  --sh-2: 0 4px 16px -4px rgba(16,20,24,.12);
+  --sh-3: 0 18px 48px -12px rgba(16,20,24,.18);
+}
+
+/* Acentos alternativos (Configuración → Apariencia) */
+:root[data-accent="cian"]    { --accent:#4BD0FF; --accent-2:#7BE3FF; --accent-ink:#04222E;
+  --grad:linear-gradient(100deg,#22B8F0 0%,#4BD0FF 50%,#8DE7FF 100%); }
+:root[data-accent="verde"]   { --accent:#3DDC84; --accent-2:#8BF0B4; --accent-ink:#062617;
+  --grad:linear-gradient(100deg,#1FBF6B 0%,#3DDC84 50%,#8BF0B4 100%); }
+:root[data-accent="violeta"] { --accent:#C98BFF; --accent-2:#E7B8FF; --accent-ink:#22093A;
+  --grad:linear-gradient(100deg,#9B5CF6 0%,#C98BFF 55%,#E7B8FF 100%); }
+:root[data-accent="ambar"]   { --accent:#FFB84B; --accent-2:#FFD98B; --accent-ink:#2B1A00;
+  --grad:linear-gradient(100deg,#FF9D4B 0%,#FFB84B 50%,#FFD98B 100%); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

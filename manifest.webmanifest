@@ -1,0 +1,27 @@
+{
+  "name": "StarkLab — Central de Comando Personal",
+  "short_name": "StarkLab",
+  "description": "Hábitos, finanzas, entrenamiento, diario y modo pausa. Todo en una web app instalable que funciona offline.",
+  "start_url": "./?src=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#0A0A0D",
+  "theme_color": "#0A0A0D",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": ["productivity", "lifestyle", "health", "finance"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Registrar gasto", "short_name": "Gasto", "url": "./?a=gasto", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Marcar hábitos", "short_name": "Hábitos", "url": "./?a=habitos", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Modo Pausa", "short_name": "Pausa", "url": "./?a=pausa", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Escribir en el diario", "short_name": "Diario", "url": "./?a=diario", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
