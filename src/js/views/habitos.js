@@ -181,9 +181,10 @@
   function buildGrid(host, s, habits, y, m, days, todayKey) {
     // La celda se achica si el mes es largo y la pantalla corta, pero nunca
     // baja de 18px: por debajo deja de ser tocable con el dedo.
-    host.style.setProperty('--hg-cell', 'clamp(18px, 2.1vw, 26px)');
+    var angosto = window.innerWidth < 720;
+    host.style.setProperty('--hg-cell', angosto ? '26px' : 'clamp(18px, 2.1vw, 26px)');
     host.style.setProperty('--hg-gap', '3px');
-    host.style.setProperty('--hg-name', 'clamp(150px, 19vw, 220px)');
+    host.style.setProperty('--hg-name', angosto ? '164px' : 'clamp(200px, 21vw, 290px)');
 
     var head = '<div class="hgrid__days">';
     for (var i = 1; i <= days; i++) {
@@ -218,7 +219,7 @@
           '<span class="hrow__txt">' +
             '<span class="hrow__label">' + esc(h.name) + '</span>' +
             '<span class="hrow__meta">' +
-              (st > 0 ? '<span class="hrow__streak">' + SL.icon('fuego') + st + '</span>· ' : '') +
+              (st > 0 ? '<span class="hrow__streak">' + SL.icon('fuego') + st + '</span> · ' : '') +
               esc(freqLabel(h)) +
             '</span>' +
           '</span>' +
@@ -243,7 +244,13 @@
       var cell = e.target.closest('.cell');
       if (cell && !cell.disabled) return toggle(cell);
       var ed = e.target.closest('[data-edit]');
-      if (ed) editHabit(ed.dataset.edit);
+      if (ed) return editHabit(ed.dataset.edit);
+      // En pantallas chicas el botón de editar está oculto: tocar el
+      // nombre hace lo mismo.
+      if (window.innerWidth < 720) {
+        var nm = e.target.closest('.hrow__name');
+        if (nm) editHabit(nm.parentNode.dataset.row);
+      }
     });
 
     /* — nota: click derecho en escritorio, mantener apretado en el teléfono — */

@@ -147,7 +147,9 @@
   position: sticky; left: 0; z-index: 2;
   display: flex; align-items: center; gap: 9px;
   padding-right: var(--s4); background: var(--card);
-  min-width: 0;
+  /* La columna del nombre tiene ancho fijo: sin overflow oculto, un nombre
+     largo se derrama por encima de las celdas del mes. */
+  min-width: 0; overflow: hidden;
 }
 .hrow__grip {
   width: 14px; color: var(--text-3); cursor: grab; opacity: 0;
@@ -155,13 +157,35 @@
 }
 .hrow:hover .hrow__grip { opacity: .6; }
 .hrow__emoji { font-size: 15px; line-height: 1; flex: none; width: 20px; text-align: center; }
-.hrow__txt { min-width: 0; }
+.hrow__txt { display: block; flex: 1 1 0; min-width: 0; }
 .hrow__label {
+  /* display:block es obligatorio: text-overflow no hace nada sobre un
+     elemento inline, y el nombre se cortaba de golpe en vez de con puntos. */
+  display: block;
   font-size: var(--fs-sm); font-weight: 550; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
-.hrow__meta { font-size: var(--fs-micro); color: var(--text-3); display: flex; align-items: center; gap: 5px; }
-.hrow__streak { display: inline-flex; align-items: center; gap: 3px; color: var(--cc); font-weight: 700; }
+.hrow__meta {
+  /* block, no flex: sobre un contenedor flex el texto suelto es un item
+     anónimo y text-overflow no lo alcanza. */
+  display: block;
+  font-size: var(--fs-micro); color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hrow__streak {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--cc); font-weight: 700; vertical-align: -1px;
+}
+.hrow__streak svg { width: 10px; height: 10px; flex: none; }
+
+/* En el teléfono no hay hover ni arrastre: el asa sólo roba lugar
+   al nombre, que es lo que hay que poder leer. */
+@media (max-width: 720px) {
+  /* Sin hover ni arrastre, el asa y el botón de editar sólo le roban lugar
+     al nombre. En el teléfono se edita tocando el nombre. */
+  .hrow__grip, .hrow__name .row__x { display: none; }
+  .hrow__name { padding-right: var(--s2); gap: 7px; cursor: pointer; }
+}
 
 .hrow__cells { display: grid; grid-auto-flow: column; gap: var(--hg-gap); grid-auto-columns: var(--hg-cell); }
 
@@ -200,6 +224,11 @@
 }
 .cell.is-on.has-note::before { background: rgba(0,0,0,.6); }
 
+/* Red de seguridad: un ícono sin tamaño explícito colapsa a cero y
+   desaparece sin avisar. Esto le da uno razonable a cualquiera que
+   se nos escape. */
+button svg, .tag svg, .row__t svg { width: 1em; height: 1em; }
+
 /* ————————————————— Píldoras, chips, botones ————————————————— */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
@@ -232,6 +261,7 @@
   color: var(--text-2); transition: color var(--t-fast), background var(--t-fast);
 }
 .seg__b:hover { color: var(--text); }
+.seg__b svg { width: 14px; height: 14px; display: block; }
 .seg__b.is-on { background: var(--card); color: var(--text); box-shadow: var(--sh-1); }
 .seg__b.is-on[data-accent] { background: var(--accent); color: var(--accent-ink); }
 

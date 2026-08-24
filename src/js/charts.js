@@ -101,16 +101,23 @@
   function smooth(pts, tension) {
     if (pts.length < 2) return '';
     if (pts.length === 2) return 'M' + pts[0][0] + ',' + pts[0][1] + 'L' + pts[1][0] + ',' + pts[1][1];
-    var t = tension === undefined ? 0.22 : tension;
+    var t = tension === undefined ? 0.2 : tension;
     var d = 'M' + pts[0][0] + ',' + pts[0][1];
     for (var i = 0; i < pts.length - 1; i++) {
       var p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
-      d += 'C' + (p1[0] + (p2[0] - p0[0]) * t) + ',' + (p1[1] + (p2[1] - p0[1]) * t) +
-           ' ' + (p2[0] - (p3[0] - p1[0]) * t) + ',' + (p2[1] - (p3[1] - p1[1]) * t) +
+      // Los puntos de control se recortan al rango del tramo. Sin esto, la
+      // curva se pasa de los valores reales — dibuja un 108% donde el dato
+      // decía 100%, que es mentir con el gráfico.
+      var lo = Math.min(p1[1], p2[1]), hi = Math.max(p1[1], p2[1]);
+      var c1y = clamp(p1[1] + (p2[1] - p0[1]) * t, lo, hi);
+      var c2y = clamp(p2[1] - (p3[1] - p1[1]) * t, lo, hi);
+      d += 'C' + (p1[0] + (p2[0] - p0[0]) * t) + ',' + c1y +
+           ' ' + (p2[0] - (p3[0] - p1[0]) * t) + ',' + c2y +
            ' ' + p2[0] + ',' + p2[1];
     }
     return d;
   }
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
   function frame(node, h) {
     node.innerHTML = '';
