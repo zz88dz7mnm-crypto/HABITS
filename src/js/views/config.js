@@ -85,8 +85,11 @@
       ) +
 
       seccion('Privacidad y datos', 'Tus datos son tuyos y viven en este dispositivo',
-        fila('Exportar todo', 'Descarga un JSON con hábitos, plata, entrenamientos y diario',
-          '<button class="btn btn--sm" data-export>' + SL.icon('bajar') + 'Exportar</button>') +
+        fila('Exportar todo', 'Un JSON con hábitos, plata, entrenamientos y diario',
+          '<div style="display:flex;gap:6px">' +
+            '<button class="btn btn--sm" data-export>' + SL.icon('bajar') + 'Descargar</button>' +
+            '<button class="btn btn--sm" data-copiar>Copiar</button>' +
+          '</div>') +
         fila('Importar', 'Restaurar desde un archivo exportado antes',
           '<button class="btn btn--sm" data-import>' + SL.icon('subir') + 'Importar</button>') +
         fila('Datos de ejemplo', 'Volver a cargar el mes de demostración, pisando lo que haya',
@@ -205,6 +208,29 @@
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
       SL.toast('Datos exportados');
     });
+
+    /* Copiar al portapapeles: algunos contextos —el visor de artifacts, un
+       webview embebido— no dejan que la página inicie una descarga. Copiar
+       siempre funciona, y el JSON se pega en cualquier archivo. */
+    SL.$('[data-copiar]', root).addEventListener('click', function () {
+      var txt = SL.store.export();
+      var ok = function () { SL.toast('Datos copiados al portapapeles'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(ok, function () { fallback(txt, ok); });
+      } else fallback(txt, ok);
+    });
+
+    function fallback(txt, ok) {
+      var ta = document.createElement('textarea');
+      ta.value = txt;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); ok(); }
+      catch (e) { SL.toast('No se pudo copiar en este navegador', 'err'); }
+      ta.remove();
+    }
 
     SL.$('[data-import]', root).addEventListener('click', function () {
       var i = document.createElement('input');
