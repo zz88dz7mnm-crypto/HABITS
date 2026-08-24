@@ -34,6 +34,16 @@ python3 -m http.server 8080
 > El service worker (offline + notificaciones) sólo se registra en `localhost` o HTTPS.
 > Abrir el `index.html` con doble clic funciona para ver la UI, pero sin PWA.
 
+## Un solo archivo
+
+```bash
+node build.mjs      # → dist/starklab.html
+```
+
+Mete adentro el CSS, los scripts y el motor lunar, y produce un HTML de ~1,6 MB
+que se abre con doble clic: sin servidor, sin red y sin instalar nada. Sirve para
+mandarlo por mensaje o probarlo en un teléfono sin desplegar.
+
 ## Deploy
 
 No hay build step: se publica la raíz del repo tal cual.

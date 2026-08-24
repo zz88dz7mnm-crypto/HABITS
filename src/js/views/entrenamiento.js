@@ -11,25 +11,42 @@
   var pickedDay = null;
   var side = 'front';
 
-  /* Grupos musculares. Cada uno tiene su forma en la vista de frente,
-     de espalda, o en las dos. Las formas son simétricas: se dibuja una
-     y se refleja sobre el eje central (x = 100). */
+  /* Grupos musculares.
+     Todas las formas están dibujadas sobre la mitad izquierda de un lienzo
+     de 200×260 y se reflejan sobre el eje central (x = 100). Así el cuerpo
+     sale simétrico sin escribir cada músculo dos veces, y con corregir una
+     forma quedan bien los dos lados. */
   var MUSCLES = {
-    pecho:      { label: 'Pecho',      view: 'front', paths: ['M100 62 L78 60 Q68 66 70 78 Q72 88 86 88 Q98 87 100 80 Z'] },
-    hombros:    { label: 'Hombros',    view: 'both',  paths: ['M76 58 Q64 57 58 66 Q54 74 57 82 Q62 84 67 78 Q69 66 78 62 Z'] },
-    biceps:     { label: 'Bíceps',     view: 'front', paths: ['M57 84 Q52 96 53 108 Q55 116 61 115 Q65 105 64 88 Z'] },
-    triceps:    { label: 'Tríceps',    view: 'back',  paths: ['M57 84 Q51 96 52 110 Q55 118 61 116 Q64 104 64 88 Z'] },
-    antebrazo:  { label: 'Antebrazo',  view: 'both',  paths: ['M54 118 Q49 130 50 142 Q53 148 58 146 Q62 134 61 120 Z'] },
-    abdomen:    { label: 'Abdomen',    view: 'front', paths: ['M100 90 L84 90 Q80 104 82 122 Q88 132 100 133 Z'] },
-    oblicuos:   { label: 'Oblicuos',   view: 'front', paths: ['M80 92 Q73 104 75 122 Q78 128 82 126 Q79 108 82 92 Z'] },
-    espalda:    { label: 'Espalda',    view: 'back',  paths: ['M100 60 L76 62 Q66 76 72 96 Q80 112 100 114 Z'] },
-    lumbar:     { label: 'Lumbar',     view: 'back',  paths: ['M100 116 L84 116 Q80 126 84 134 Q92 138 100 137 Z'] },
-    trapecio:   { label: 'Trapecio',   view: 'back',  paths: ['M100 48 L82 54 Q76 60 80 64 Q92 60 100 60 Z'] },
-    gluteos:    { label: 'Glúteos',    view: 'back',  paths: ['M100 138 L82 136 Q74 144 78 158 Q88 164 100 160 Z'] },
-    cuadriceps: { label: 'Cuádriceps', view: 'front', paths: ['M98 136 L82 134 Q76 154 79 180 Q84 196 93 194 Q98 168 98 140 Z'] },
-    isquios:    { label: 'Isquios',    view: 'back',  paths: ['M98 162 L80 160 Q76 178 80 198 Q86 208 93 205 Q97 182 98 164 Z'] },
-    gemelos:    { label: 'Gemelos',    view: 'both',  paths: ['M93 200 Q84 204 82 222 Q84 238 90 238 Q95 222 95 202 Z'] }
+    pecho:      { label: 'Pecho',      view: 'front', paths: ['M100 63 L85 65 Q80 70 82 79 Q88 87 100 87 Z'] },
+    hombros:    { label: 'Hombros',    view: 'both',  paths: ['M79 54 Q68 56 64 65 Q62 72 65 77 L75 73 Q76 61 81 57 Z'] },
+    biceps:     { label: 'Bíceps',     view: 'front', paths: ['M65 79 Q60 90 60 102 Q61 110 65 109 Q69 96 72 82 Z'] },
+    triceps:    { label: 'Tríceps',    view: 'back',  paths: ['M64 79 Q58 91 58 104 Q59 111 64 110 Q68 97 71 82 Z'] },
+    antebrazo:  { label: 'Antebrazo',  view: 'both',  paths: ['M60 117 Q56 129 56 140 Q57 146 61 145 Q63 132 64 119 Z'] },
+    abdomen:    { label: 'Abdomen',    view: 'front', paths: ['M100 89 L85 89 Q81 104 83 123 Q91 130 100 130 Z'] },
+    oblicuos:   { label: 'Oblicuos',   view: 'front', paths: ['M83 91 Q77 104 79 121 Q81 126 84 124 Q81 108 84 91 Z'] },
+    espalda:    { label: 'Espalda',    view: 'back',  paths: ['M100 61 L83 64 Q77 77 81 94 Q88 106 100 108 Z'] },
+    lumbar:     { label: 'Lumbar',     view: 'back',  paths: ['M100 113 L85 113 Q81 122 85 131 Q93 135 100 134 Z'] },
+    trapecio:   { label: 'Trapecio',   view: 'back',  paths: ['M100 47 L83 53 Q78 59 82 63 Q92 59 100 59 Z'] },
+    gluteos:    { label: 'Glúteos',    view: 'back',  paths: ['M100 139 L85 137 Q78 145 81 156 Q90 162 100 158 Z'] },
+    cuadriceps: { label: 'Cuádriceps', view: 'front', paths: ['M98 149 L86 147 Q81 163 82 182 Q85 194 91 192 Q96 170 98 151 Z'] },
+    isquios:    { label: 'Isquios',    view: 'back',  paths: ['M98 161 L85 159 Q81 176 83 193 Q87 201 92 199 Q96 180 98 163 Z'] },
+    gemelos:    { label: 'Gemelos',    view: 'both',  paths: ['M94 203 Q88 207 86 219 Q85 231 89 234 L93 233 Q95 218 95 205 Z'] }
   };
+
+  /* La silueta, también en mitades. Se dibuja por partes —torso, hombro,
+     brazo, antebrazo, mano, muslo, pantorrilla y pie— en vez de con un
+     contorno único: así los brazos se despegan del cuerpo y las piernas se
+     separan, que es lo que hace que se lea como un cuerpo y no como una mancha. */
+  var SILUETA = [
+    'M100 48 L79 54 Q72 59 74 69 L77 97 Q79 113 83 125 L85 141 L100 144 Z',  // torso
+    'M79 52 Q67 55 63 65 Q61 73 64 79 L75 74 Q76 60 81 56 Z',                // deltoides
+    'M64 77 Q58 90 58 103 Q58 112 63 113 Q68 99 73 80 Z',                    // brazo
+    'M59 115 Q54 129 54 142 Q55 150 60 149 Q63 134 64 117 Z',                // antebrazo
+    'M55 151 Q51 157 53 163 Q57 166 60 162 Q61 155 60 151 Z',                // mano
+    'M100 146 L85 143 Q79 161 80 183 Q81 197 86 199 L95 197 Q99 172 100 149 Z', // muslo
+    'M95 201 Q87 205 85 220 Q84 234 88 238 L94 237 Q97 220 97 203 Z',        // pantorrilla
+    'M88 240 Q83 246 84 251 L97 251 Q98 245 95 241 Z'                        // pie
+  ];
 
   SL.views = SL.views || {};
   SL.views.entrenamiento = function (root, s) {
@@ -229,19 +246,15 @@
     var body = 'var(--card-2)';
     var edge = 'var(--border)';
 
-    /* Silueta base — dos mitades espejadas, para que el cuerpo sea simétrico
-       sin duplicar cada path a mano. */
-    var silhouette = [
-      'M100 18 Q88 18 87 30 Q86 40 92 45 L92 52 L74 58 Q58 63 55 78 L50 118 L48 148 Q47 156 54 157 Q60 157 61 149 L66 116 L70 96 L72 132 Q73 150 78 168 L80 200 L82 236 Q83 246 91 246 Q97 246 97 237 L98 200 L100 168 Z'
-    ];
     var g = add('g', {});
-    silhouette.forEach(function (d) {
+    SILUETA.forEach(function (d) {
       add('path', { d: d, fill: body, stroke: edge, 'stroke-width': 1, 'stroke-linejoin': 'round' }, g);
       add('path', { d: d, fill: body, stroke: edge, 'stroke-width': 1, 'stroke-linejoin': 'round',
         transform: 'translate(200,0) scale(-1,1)' }, g);
     });
-    // Cabeza aparte, así no se refleja dos veces.
-    add('ellipse', { cx: 100, cy: 30, rx: 13, ry: 15, fill: body, stroke: edge, 'stroke-width': 1 }, g);
+    // Cuello y cabeza van enteros: están sobre el eje, no se reflejan.
+    add('path', { d: 'M93 36 h14 v13 h-14 Z', fill: body, stroke: edge, 'stroke-width': 1 }, g);
+    add('ellipse', { cx: 100, cy: 26, rx: 12.5, ry: 14.5, fill: body, stroke: edge, 'stroke-width': 1 }, g);
 
     /* Grupos activos, encima de la silueta */
     active.forEach(function (key, i) {
@@ -256,7 +269,7 @@
             stroke: col, 'stroke-width': .5, 'stroke-linejoin': 'round',
             transform: sx === -1 ? 'translate(200,0) scale(-1,1)' : ''
           });
-          p.style.filter = 'drop-shadow(0 0 7px ' + col + ')';
+          p.style.filter = 'drop-shadow(0 0 4px ' + col + ')';
           p.style.transition = 'opacity .5s var(--e-out) ' + (i * 90) + 'ms';
           requestAnimationFrame(function () { p.setAttribute('opacity', '.9'); });
         });

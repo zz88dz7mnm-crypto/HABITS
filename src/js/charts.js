@@ -516,8 +516,10 @@
       var data = opt.data || [];
       var f = frame(node, opt.height || 280);
       var svg = f.svg, w = f.w, h = f.h;
-      var cx = w / 2, cy = h / 2 + 4;
-      var R = Math.max(40, Math.min(w, h) / 2 - 42);
+      var cx = w / 2, cy = h / 2 - 2;
+      /* El radio deja lugar para la etiqueta y su valor, que se dibujan a
+         1.2 R del centro: con menos margen, el vértice de abajo se corta. */
+      var R = Math.max(36, Math.min(w, h) / 2 - 58);
       var n = data.length || 6;
       svg.setAttribute('aria-label', opt.label || 'Radar de performance por área');
 
@@ -574,13 +576,16 @@
         v.addEventListener('mouseleave', hideTip);
 
         var lp = pt(i, 1.2);
+        var abajo = lp[1] > cy + 4;
         var anchor = Math.abs(lp[0] - cx) < 6 ? 'middle' : (lp[0] > cx ? 'start' : 'end');
+        // Abajo el par se sube: si no, el valor se sale del gráfico.
+        var y0 = abajo ? lp[1] - 4 : lp[1] + 4;
         el('text', {
-          x: lp[0], y: lp[1] + 4, 'text-anchor': anchor,
+          x: lp[0], y: y0, 'text-anchor': anchor,
           fill: 'var(--text-2)', 'font-size': 11, 'font-weight': 600, 'font-family': 'var(--font)'
         }, svg).textContent = d.label;
         el('text', {
-          x: lp[0], y: lp[1] + 17, 'text-anchor': anchor,
+          x: lp[0], y: y0 + 13, 'text-anchor': anchor,
           fill: 'var(--text-3)', 'font-size': 10, 'font-family': 'var(--font)'
         }, svg).textContent = d.value;
       });

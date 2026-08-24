@@ -18,6 +18,7 @@
   var esc = SL.esc;
   var scene = null, raf = null, clockTimer = null, snapTimer = null;
   var cargando = false;
+  var reubicar = null;   // lo define luna() para aceptar la ubicación real
 
   // Córdoba, Argentina: lo que muestra el documento de producto. Sólo se usa
   // si el usuario no da permiso de ubicación — no reemplaza a la real.
@@ -62,22 +63,31 @@
     clearInterval(clockTimer);
     clockTimer = setInterval(tick, 1000);
 
-    /* — ubicación: primero la real, y si no hay permiso, la del documento — */
-    ubicacion(function (loc) {
-      SL.$('[data-lugar]', root).textContent = loc.label;
-      if (escena === 'estrellas') {
-        SL.$('[data-fase]', root).textContent = '';
-        campoEstrellas(SL.$('[data-sky]', root), 460);
-        return;
-      }
+    /* — la escena arranca ya mismo — */
+    var faseEl = SL.$('[data-fase]', root);
+    var lugarEl = SL.$('[data-lugar]', root);
+    lugarEl.textContent = FALLBACK.label;
+
+    if (escena === 'estrellas') {
+      faseEl.textContent = '';
+      campoEstrellas(SL.$('[data-sky]', root), 460);
+    } else if (escena === 'planeta') {
+      faseEl.textContent = 'Saturno · escena decorativa';
       campoEstrellas(SL.$('[data-sky]', root), 150);
-      if (escena === 'planeta') {
-        SL.$('[data-fase]', root).textContent = 'Saturno · escena decorativa';
-        planeta(SL.$('[data-escena-host]', root));
-        return;
-      }
-      luna(SL.$('[data-escena-host]', root), SL.$('[data-fase]', root), loc);
-    });
+      planeta(SL.$('[data-escena-host]', root));
+    } else {
+      campoEstrellas(SL.$('[data-sky]', root), 150);
+      luna(SL.$('[data-escena-host]', root), faseEl, FALLBACK);
+    }
+
+    /* La ubicación real llega cuando llega: recién ahí se recalcula la
+       orientación de la Luna, sin que nadie haya esperado nada. */
+    if (escena === 'luna') {
+      ubicacionReal(function (loc) {
+        lugarEl.textContent = loc.label;
+        if (reubicar) reubicar(loc);
+      });
+    }
 
     /* — clima — */
     clima(SL.$('[data-clima]', root));
@@ -112,7 +122,7 @@
     cancelAnimationFrame(raf);
     clearInterval(snapTimer);
     if (scene && scene.dom && scene.dom.parentNode) scene.dom.parentNode.removeChild(scene.dom);
-    scene = null;
+    scene = null; reubicar = null;
   }
 
   /* ————————————————— carga diferida del motor lunar —————————————————
@@ -158,6 +168,10 @@
       var A = window.LunaAstro;
       // upMode 'zenith': la Luna orientada como se ve desde donde estás.
       var obs = A.observer(loc.lat, loc.lon, 20);
+      reubicar = function (nueva) {
+        obs = A.observer(nueva.lat, nueva.lon, 20);
+        refrescar();
+      };
       scene = window.LunaScene(host, {});
       if (!scene) throw new Error('sin WebGL');
 
@@ -401,21 +415,15 @@
     })(performance.now());
   }
 
-  /* ————————————————— ubicación ————————————————— */
-  function ubicacion(cb) {
-    var done = false;
-    function fin(loc) { if (!done) { done = true; cb(loc); } }
-
-    if (!navigator.geolocation) return fin(FALLBACK);
-    // Si el permiso tarda, la escena no espera: arranca con el respaldo.
-    var t = setTimeout(function () { fin(FALLBACK); }, 6000);
+  /* ————————————————— ubicación —————————————————
+     Sólo avisa si consigue la de verdad. Si no hay permiso o no hay
+     respuesta, nunca llama de vuelta: la escena ya está andando con el
+     respaldo y no hay nada que corregir. */
+  function ubicacionReal(cb) {
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(function (pos) {
-      clearTimeout(t);
-      fin({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'Tu ubicación', real: true });
-    }, function () {
-      clearTimeout(t);
-      fin(FALLBACK);
-    }, { timeout: 5500, maximumAge: 900000 });
+      cb({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'Tu ubicación' });
+    }, function () {}, { timeout: 8000, maximumAge: 900000 });
   }
 
   /* ————————————————— clima —————————————————
