@@ -9,6 +9,9 @@
   var C = SL.compute, D = SL.date, esc = SL.esc;
   var cursor = null;     // mes que se está mirando
   var compare = false;   // superponer el mes anterior
+  var modo = 'total';    // 'total' = sólo el conjunto · 'habitos' = una línea por hábito
+  var activo = null;     // hábito destacado dentro del modo por hábito
+  var semanaHabito = null; // qué hábito mira el gráfico semanal (null = todos)
 
   function monthLabel(d) { return SL.MESES[d.getMonth()] + ' ' + d.getFullYear(); }
 
@@ -48,11 +51,20 @@
         '<div class="card__head">' +
           '<div>' +
             '<div class="card__title">Progreso de ' + esc(monthLabel(cursor)) + '</div>' +
-            '<div class="card__sub">Porcentaje de hábitos cumplidos sobre los que tocaban cada día</div>' +
+            '<div class="card__sub">' + (modo === 'total'
+              ? 'Porcentaje de hábitos cumplidos sobre los que tocaban cada día'
+              : 'Media de los últimos 7 días. Día a día un hábito sólo vale 0 o 1: promediado se puede comparar con los demás.') +
+            '</div>' +
           '</div>' +
           '<div class="card__tools">' +
-            '<button class="btn btn--sm' + (compare ? ' btn--primary' : '') + '" data-comp>' +
-              'Comparar con ' + esc(SL.MESES[prev.getMonth()]) + '</button>' +
+            '<div class="seg" data-modo>' +
+              '<button class="seg__b' + (modo === 'total' ? ' is-on' : '') + '" data-mo="total">Total</button>' +
+              '<button class="seg__b' + (modo === 'habitos' ? ' is-on' : '') + '" data-mo="habitos">Por hábito</button>' +
+            '</div>' +
+            (modo === 'total'
+              ? '<button class="btn btn--sm' + (compare ? ' btn--primary' : '') + '" data-comp>' +
+                'Comparar con ' + esc(SL.MESES[prev.getMonth()]) + '</button>'
+              : '') +
             '<div style="text-align:right;margin-left:8px">' +
               '<div style="font-size:1.6rem;font-weight:800;letter-spacing:-.04em;line-height:1" class="u-grad-text">' +
                 Math.round(rate * 100) + '%</div>' +
@@ -60,10 +72,21 @@
             '</div>' +
           '</div>' +
         '</div>' +
-        '<div data-chart-line style="height:260px"></div>' +
-        (compare ? '<div class="legend"><span class="legend__i"><span class="legend__sw" style="--cc:var(--accent)"></span>' +
-          esc(SL.MESES[m]) + '</span><span class="legend__i"><span class="legend__sw" style="--cc:var(--text-3)"></span>' +
-          esc(SL.MESES[prev.getMonth()]) + '</span></div>' : '') +
+        '<div data-chart-line style="height:280px"></div>' +
+        (modo === 'habitos'
+          ? '<div class="chips" data-series>' +
+              '<button class="chip-s' + (activo === null ? ' is-on' : '') + '" data-h2="" style="--cc:var(--accent)">' +
+                '<i></i>Total</button>' +
+              habits.map(function (h) {
+                return '<button class="chip-s' + (activo === h.id ? ' is-on' : '') + '" data-h2="' + h.id + '" ' +
+                  'style="--cc:var(--c-' + h.color + ')"><i></i>' + h.emoji + ' ' + esc(h.name) + '</button>';
+              }).join('') +
+            '</div>'
+          : compare
+            ? '<div class="legend"><span class="legend__i"><span class="legend__sw" style="--cc:var(--accent)"></span>' +
+              esc(SL.MESES[m]) + '</span><span class="legend__i"><span class="legend__sw" style="--cc:var(--text-3)"></span>' +
+              esc(SL.MESES[prev.getMonth()]) + '</span></div>'
+            : '') +
       '</div>' +
 
       '<div class="card card--flush">' +
@@ -85,10 +108,19 @@
             '<div class="card__title">Cumplimiento semanal</div>' +
             '<div class="card__sub" data-semana-label></div>' +
           '</div>' +
-          '<div class="card__tools"><div class="seg">' +
-            '<button class="seg__b" data-sem="-1" aria-label="Semana anterior">' + SL.icon('izq') + '</button>' +
-            '<button class="seg__b" data-sem="1" aria-label="Semana siguiente">' + SL.icon('der') + '</button>' +
-          '</div></div></div>' +
+          '<div class="card__tools">' +
+            '<select class="select select--sm" data-sem-h>' +
+              '<option value="">Todos los hábitos</option>' +
+              habits.map(function (h) {
+                return '<option value="' + h.id + '"' + (semanaHabito === h.id ? ' selected' : '') + '>' +
+                  h.emoji + ' ' + esc(h.name) + '</option>';
+              }).join('') +
+            '</select>' +
+            '<div class="seg">' +
+              '<button class="seg__b" data-sem="-1" aria-label="Semana anterior">' + SL.icon('izq') + '</button>' +
+              '<button class="seg__b" data-sem="1" aria-label="Semana siguiente">' + SL.icon('der') + '</button>' +
+            '</div>' +
+          '</div></div>' +
           '<div data-chart-week style="height:170px"></div>' +
         '</div>' +
         '<div class="card">' +
@@ -101,16 +133,41 @@
       '</div>';
 
     /* ————— gráfico de progreso ————— */
-    var cmp = null;
-    if (compare) {
-      cmp = C.monthSeries(s, prev.getFullYear(), prev.getMonth());
+    if (modo === 'total') {
+      SL.charts.line(SL.$('[data-chart-line]', root), {
+        data: series,
+        compare: compare ? C.monthSeries(s, prev.getFullYear(), prev.getMonth()) : null,
+        height: 280,
+        tipTitle: function (p) { return p.day + ' de ' + SL.MESES[m]; }
+      });
+    } else {
+      /* Todas las series en media móvil de 7 días, para que la del total y
+         la de cada hábito estén en la misma escala y se puedan comparar. */
+      var extras = habits.map(function (h) {
+        return {
+          key: h.id, label: h.name,
+          color: 'var(--c-' + h.color + ')',
+          data: C.rolling(s, h, y, m, 7),
+          activa: activo === h.id
+        };
+      });
+      SL.charts.line(SL.$('[data-chart-line]', root), {
+        data: C.rolling(s, null, y, m, 7),
+        series: extras,
+        hayActiva: activo !== null,
+        atenuarPrincipal: activo !== null,
+        height: 280,
+        tipTitle: function (p) { return 'Hasta el ' + p.day + ' de ' + SL.MESES[m]; },
+        tipNota: 'media de 7 días'
+      });
+
+      SL.$('[data-series]', root).addEventListener('click', function (e) {
+        var b = e.target.closest('[data-h2]'); if (!b) return;
+        var id = b.dataset.h2 || null;
+        activo = (activo === id) ? null : id;
+        SL.render();
+      });
     }
-    SL.charts.line(SL.$('[data-chart-line]', root), {
-      data: series,
-      compare: cmp,
-      height: 260,
-      tipTitle: function (p) { return p.day + ' de ' + SL.MESES[m]; }
-    });
 
     /* ————— la grilla ————— */
     buildGrid(SL.$('[data-grid]', root), s, habits, y, m, days, todayKey);
@@ -119,23 +176,44 @@
     var weekOff = 0;
     function drawWeek() {
       var ws = D.addDays(D.startOfWeek(D.today()), weekOff * 7);
-      var wk = C.weekOverall(s, ws);
       var end = D.addDays(ws, 6);
+      var hSel = semanaHabito ? habits.filter(function (x) { return x.id === semanaHabito; })[0] : null;
       SL.$('[data-semana-label]', root).textContent =
-        ws.getDate() + '/' + (ws.getMonth() + 1) + ' — ' + end.getDate() + '/' + (end.getMonth() + 1);
-      SL.charts.bars(SL.$('[data-chart-week]', root), {
-        height: 170,
-        data: wk.map(function (d, i) {
+        ws.getDate() + '/' + (ws.getMonth() + 1) + ' — ' + end.getDate() + '/' + (end.getMonth() + 1) +
+        (hSel ? ' · ' + hSel.name : '');
+
+      var datos;
+      if (hSel) {
+        // Un solo hábito: la barra es lleno o vacío, y los días que no le
+        // tocaban quedan como hueco en vez de contar como incumplidos.
+        datos = [];
+        for (var i = 0; i < 7; i++) {
+          var d = D.addDays(ws, i);
+          var toca = C.due(hSel, d);
+          datos.push({
+            label: SL.DIAS_C[i], full: SL.DIAS[i] + ' · ' + hSel.name,
+            rate: !toca ? null : (C.isDone(s, hSel.id, D.iso(d)) ? 1 : 0),
+            done: toca && C.isDone(s, hSel.id, D.iso(d)) ? 1 : 0, total: toca ? 1 : 0,
+            future: d > D.today(), today: D.iso(d) === todayKey, color: hSel.color
+          });
+        }
+      } else {
+        datos = C.weekOverall(s, ws).map(function (d, i) {
           return {
             label: SL.DIAS_C[i], full: SL.DIAS[i], rate: d.rate, done: d.done, total: d.total,
             future: d.future, today: d.date === todayKey
           };
-        })
-      });
+        });
+      }
+      SL.charts.bars(SL.$('[data-chart-week]', root), { height: 170, data: datos });
     }
     drawWeek();
     SL.$$('[data-sem]', root).forEach(function (b) {
       b.addEventListener('click', function () { weekOff += +b.dataset.sem; drawWeek(); });
+    });
+    SL.$('[data-sem-h]', root).addEventListener('change', function (e) {
+      semanaHabito = e.target.value || null;
+      drawWeek();
     });
 
     /* ————— rachas ————— */
@@ -165,7 +243,12 @@
     SL.$('[data-hoy]', root).addEventListener('click', function () {
       var t = D.today(); cursor = new Date(t.getFullYear(), t.getMonth(), 1); SL.render();
     });
-    SL.$('[data-comp]', root).addEventListener('click', function () { compare = !compare; SL.render(); });
+    var comp = SL.$('[data-comp]', root);
+    if (comp) comp.addEventListener('click', function () { compare = !compare; SL.render(); });
+    SL.$('[data-modo]', root).addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mo]'); if (!b) return;
+      modo = b.dataset.mo; activo = null; SL.render();
+    });
     SL.$('[data-nuevo]', root).addEventListener('click', function () { editHabit(null); });
     SL.$('[data-archivados]', root).addEventListener('click', function () { archivedModal(s); });
   };

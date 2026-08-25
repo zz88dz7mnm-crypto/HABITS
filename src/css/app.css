@@ -744,3 +744,23 @@ button.hero-fin__mini:hover { border-color: var(--text-3); }
 .cfg-row__txt { flex: 1; min-width: 0; }
 .cfg-row__t { font-size: var(--fs-sm); font-weight: 600; }
 .peso-hist { padding-top: var(--s4); border-top: 1px solid var(--border-soft); display: grid; gap: var(--s3); }
+
+/* Chips de serie: encienden o apagan una línea del gráfico */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s4); }
+.chip-s {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 11px; border-radius: var(--r-full);
+  border: 1px solid var(--border); background: var(--card-2);
+  font-size: var(--fs-xs); font-weight: 600; color: var(--text-3);
+  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+.chip-s i { width: 8px; height: 8px; border-radius: 50%; background: var(--cc); flex: none; opacity: .45; }
+.chip-s:hover { color: var(--text-2); border-color: var(--text-3); }
+.chip-s.is-on { color: var(--text); border-color: var(--cc);
+  background: color-mix(in oklab, var(--cc) 13%, transparent); }
+.chip-s.is-on i { opacity: 1; }
+.select--sm { width: auto; max-width: 180px; padding: 5px 30px 5px 10px; font-size: var(--fs-xs); }
+
+.chart-tip__s { display: flex; align-items: center; gap: 7px; font-size: var(--fs-micro); color: var(--text-2); }
+.chart-tip__s i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.chart-tip__s b { margin-left: auto; color: var(--text); font-variant-numeric: tabular-nums; }

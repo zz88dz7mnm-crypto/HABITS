@@ -68,6 +68,37 @@
     return out;
   }
 
+  /* Media móvil de cumplimiento, día por día del mes.
+     Un hábito visto día a día sólo vale 0 o 1: dibuja una onda cuadrada
+     que no se puede leer ni comparar con otra. Promediando los últimos
+     N días —contando sólo los días en que al hábito le tocaba— cada uno
+     queda como una curva de 0 a 100% y recién ahí tiene sentido ponerlos
+     todos en el mismo gráfico.
+
+     Con h en null promedia todos los hábitos activos: esa es la línea
+     del total. */
+  function rolling(s, h, year, month, ventana) {
+    var win = ventana || 7;
+    var days = D.daysInMonth(year, month), out = [], t = D.today();
+    var lista = h ? [h] : activeHabits(s);
+
+    for (var i = 1; i <= days; i++) {
+      var d = new Date(year, month, i);
+      if (d > t) { out.push({ day: i, date: D.iso(d), future: true, rate: null }); continue; }
+      var n = 0, k = 0;
+      for (var b = 0; b < win; b++) {
+        var dd = D.addDays(d, -b);
+        if (dd > t) continue;
+        lista.forEach(function (x) {
+          if (!due(x, dd)) return;
+          n++; if (isDone(s, x.id, D.iso(dd))) k++;
+        });
+      }
+      out.push({ day: i, date: D.iso(d), future: false, rate: n ? k / n : null });
+    }
+    return out;
+  }
+
   function noteOfDay(s, key) {
     var found = null;
     Object.keys(s.notes).forEach(function (hid) {
@@ -330,7 +361,7 @@
     dayRate: dayRate, monthSeries: monthSeries, monthRate: monthRate, noteOfDay: noteOfDay,
     streak: streak, bestStreak: bestStreak, weekRate: weekRate, weekOverall: weekOverall,
     frascos: frascos, porTipo: porTipo, gastoDelMes: gastoDelMes, TIPOS: TIPOS,
-    trainingWeek: trainingWeek, habitMonthSeries: habitMonthSeries,
+    trainingWeek: trainingWeek, habitMonthSeries: habitMonthSeries, rolling: rolling,
     moodSeries: moodSeries, radar: radar, score: score
   };
 

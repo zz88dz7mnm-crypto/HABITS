@@ -149,6 +149,10 @@
 
       svg.setAttribute('aria-label', opt.label || 'Progreso mensual de cumplimiento de hábitos');
 
+      /* Series secundarias: se dibujan primero y apagadas, para que la
+         principal quede arriba y siga leyéndose como la protagonista. */
+      var extras = opt.series || [];
+
       var real = data.filter(function (d) { return d.rate !== null && !d.future; });
       var maxDay = data.length || 31;
       var X = function (day) { return m.l + ((day - 1) / Math.max(1, maxDay - 1)) * iw; };
@@ -197,16 +201,37 @@
       el('stop', { offset: '0', 'stop-color': stroke, 'stop-opacity': .26 }, grad);
       el('stop', { offset: '1', 'stop-color': stroke, 'stop-opacity': 0 }, grad);
 
+      extras.forEach(function (serie, si) {
+        var runs = [], cur2 = [];
+        serie.data.forEach(function (p) {
+          if (p.rate === null || p.future) { if (cur2.length) { runs.push(cur2); cur2 = []; } return; }
+          cur2.push([X(p.day), Y(p.rate)]);
+        });
+        if (cur2.length) runs.push(cur2);
+        runs.forEach(function (pts) {
+          if (pts.length < 2) return;
+          var path = el('path', {
+            d: smooth(pts), fill: 'none', stroke: serie.color,
+            'stroke-width': serie.activa ? 2.4 : 1.4,
+            'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+            opacity: serie.activa ? 1 : (opt.hayActiva ? 0.16 : 0.5)
+          }, svg);
+          path.style.transition = 'opacity .25s var(--e-out), stroke-width .25s var(--e-out)';
+        });
+      });
+
+      var opPrin = opt.atenuarPrincipal ? 0.25 : 1;
       segs.forEach(function (pts) {
         if (pts.length > 1) {
           var dPath = smooth(pts);
           el('path', {
             d: dPath + 'L' + pts[pts.length - 1][0] + ',' + Y(0) + 'L' + pts[0][0] + ',' + Y(0) + 'Z',
-            fill: 'url(#' + id + 'f)', stroke: 'none'
+            fill: 'url(#' + id + 'f)', stroke: 'none',
+            opacity: opt.atenuarPrincipal ? 0.2 : 1
           }, svg);
           var p = el('path', {
             d: dPath, fill: 'none', stroke: stroke, 'stroke-width': 2,
-            'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+            'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: opPrin
           }, svg);
           if (!reduce()) {
             var len = p.getTotalLength();
@@ -290,7 +315,16 @@
         var box = svg.getBoundingClientRect();
         var sx = box.left + (x / w) * box.width, sy = box.top + (y / h) * box.height;
         var html = '<b>' + (opt.tipTitle ? opt.tipTitle(p) : 'Día ' + p.day) + '</b>' +
-                   '<span class="chart-tip__v">' + fmt.pct(p.rate) + ' de cumplimiento</span>';
+                   '<span class="chart-tip__v">' + fmt.pct(p.rate) + ' en total' +
+                   (opt.tipNota ? ' · ' + escape_(opt.tipNota) : '') + '</span>';
+        // Con varias series, el tooltip las lista todas: si no, hay que
+        // adivinar a qué hábito pertenece cada línea.
+        (opt.series || []).forEach(function (se) {
+          var q = se.data[p.day - 1];
+          if (!q || q.rate === null) return;
+          html += '<span class="chart-tip__s"><i style="background:' + se.color + '"></i>' +
+                  escape_(se.label) + '<b>' + fmt.pct(q.rate) + '</b></span>';
+        });
         if (p.note) html += '<span class="chart-tip__note">' + p.note.emoji + ' ' + escape_(p.note.text) + '</span>';
         showTip(html, sx, sy);
       }
