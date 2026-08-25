@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Diario
+   StarkLab Web · Journaling
    Una entrada por día, ánimo en cinco caras y etiquetas de qué
    lo influyó. Con el tiempo se puede cruzar con los hábitos.
    ============================================================ */
@@ -20,7 +20,7 @@
   ];
 
   SL.views = SL.views || {};
-  SL.views.diario = function (root, s) {
+  SL.views.journaling = function (root, s) {
     var todayKey = D.iso(D.today());
     var hoy = s.journal.filter(function (e) { return e.date === todayKey; })[0];
     var from = D.addDays(D.today(), -(range - 1));
@@ -40,7 +40,7 @@
     root.innerHTML =
       '<div class="page-head">' +
         '<div>' +
-          '<h1 class="page-head__t">Diario</h1>' +
+          '<h1 class="page-head__t">Journaling</h1>' +
           '<p class="page-head__s">Escribí en menos de un minuto. Privado: nunca sale de este dispositivo.</p>' +
         '</div>' +
       '</div>' +

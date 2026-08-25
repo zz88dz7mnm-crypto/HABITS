@@ -27,15 +27,6 @@
       });
     }
 
-    // Mapa de calor: un año completo, arrancando un lunes
-    var heat = [];
-    var start = D.startOfWeek(D.addDays(t, -363));
-    for (var k = 0; k < 371; k++) {
-      var dd = D.addDays(start, k);
-      if (dd > t) { heat.push({ date: D.iso(dd), rate: null }); continue; }
-      heat.push({ date: D.iso(dd), rate: C.dayRate(s, dd) });
-    }
-
     // Ranking de hábitos por cumplimiento en 30 días
     var rank = habits.map(function (h) {
       var n = 0, done = 0;
@@ -90,22 +81,8 @@
         '</div>' +
       '</div>' +
 
-      '<div class="card">' +
-        '<div class="card__head"><div>' +
-          '<div class="card__title">Un año de hábitos</div>' +
-          '<div class="card__sub">Cada celda es un día. Cuanto más fuerte, más cumpliste.</div>' +
-        '</div>' +
-        '<div class="card__tools" style="display:flex;align-items:center;gap:7px">' +
-          '<span class="card__sub">Menos</span>' +
-          [0.14, 0.35, 0.56, 0.78, 1].map(function (o) {
-            return '<span style="width:11px;height:11px;border-radius:3px;background:var(--accent);opacity:' + o + '"></span>';
-          }).join('') +
-          '<span class="card__sub">Más</span>' +
-        '</div></div>' +
-        '<div style="overflow-x:auto"><div data-heat style="height:132px;min-width:760px"></div></div>' +
-      '</div>' +
-
-      '<div class="grid grid--2">' +
+      '<div class="grid grid--3">' +
+        rachasHTML(s, habits) +
         '<div class="card">' +
           '<div class="card__head"><div>' +
             '<div class="card__title">Mes contra mes</div>' +
@@ -134,9 +111,34 @@
       '</div>';
 
     SL.charts.radar(SL.$('[data-radar]', root), { data: r, height: 320 });
-    SL.charts.heat(SL.$('[data-heat]', root), { data: heat, height: 132 });
     SL.charts.bars(SL.$('[data-meses]', root), { height: 190, data: meses });
   };
+
+  /* Las rachas: días consecutivos cumplidos ahora mismo, ordenadas de
+     mayor a menor. Vivían en el Inicio, pero son una estadística: acá
+     tienen contexto y allá eran ruido. */
+  function rachasHTML(s, habits) {
+    var orden = habits.map(function (h) {
+      return { h: h, n: C.streak(s, h), best: C.bestStreak(s, h) };
+    }).sort(function (a, b) { return b.n - a.n; });
+    var max = Math.max(1, orden[0] ? orden[0].n : 1);
+
+    return '<div class="card">' +
+      '<div class="card__head"><div>' +
+        '<div class="card__title">Rachas</div>' +
+        '<div class="card__sub">Días seguidos cumpliendo, ahora mismo</div>' +
+      '</div></div>' +
+      (orden.length
+        ? '<div class="legend legend--rows">' + orden.map(function (o) {
+            return '<span class="legend__i" style="--cc:var(--c-' + o.h.color + ')">' +
+              '<span class="legend__sw"></span>' +
+              '<span class="legend__name">' + o.h.emoji + ' ' + esc(o.h.name) + '</span>' +
+              '<span class="legend__bar"><span style="width:' + Math.round(o.n / max * 100) + '%"></span></span>' +
+              '<b>' + o.n + 'd</b></span>';
+          }).join('') + '</div>'
+        : '<p class="card__sub">Sin hábitos todavía.</p>') +
+    '</div>';
+  }
 
   var FUENTE = {
     fisico:        'Hábitos de cuerpo + días de entrenamiento efectivamente hechos',

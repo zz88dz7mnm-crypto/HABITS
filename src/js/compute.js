@@ -50,6 +50,24 @@
     return out;
   }
 
+  /* La misma serie del mes, pero de un solo hábito: 1 si lo cumplió, 0 si
+     no, y null los días en que no le tocaba (ahí la línea se corta en vez
+     de mentir un cero). */
+  function habitMonthSeries(s, h, year, month) {
+    var days = D.daysInMonth(year, month), out = [], t = D.today();
+    for (var i = 1; i <= days; i++) {
+      var d = new Date(year, month, i);
+      var futuro = d > t;
+      out.push({
+        day: i,
+        date: D.iso(d),
+        future: futuro,
+        rate: (futuro || !due(h, d)) ? null : (isDone(s, h.id, D.iso(d)) ? 1 : 0)
+      });
+    }
+    return out;
+  }
+
   function noteOfDay(s, key) {
     var found = null;
     Object.keys(s.notes).forEach(function (hid) {
@@ -124,35 +142,71 @@
     return out;
   }
 
-  /* ————————————————— plata ————————————————— */
-  function inMonth(dateStr, y, m) {
-    var d = D.parse(dateStr);
-    return d.getFullYear() === y && d.getMonth() === m;
+  /* ————————————————— plata —————————————————
+     La ecuación que sostiene todo el sistema:
+
+       saldo = Σ disponible(frascos) + libre + noPropio
+
+     "disponible" es lo que al frasco todavía le queda (asignado menos
+     gastado). "libre" es la plata que aún no tiene trabajo asignado: es
+     el único número que se puede gastar sin romper nada. */
+  function frascos(s) {
+    var f = s.fin || { saldo: 0, noPropio: 0, frascos: [] };
+    var lista = (f.frascos || []).slice().sort(function (a, b) { return a.orden - b.orden; });
+    var asignado = 0, gastado = 0;
+    lista.forEach(function (x) { asignado += x.asignado || 0; gastado += x.gastado || 0; });
+    var disponible = asignado - gastado;
+    var propio = (f.saldo || 0) - (f.noPropio || 0);
+    var porCobrar = (f.porCobrar || []).reduce(function (a, x) { return a + x.monto; }, 0);
+    var deuda = (f.deudas || []).filter(function (d) { return !d.repuesto; })
+      .reduce(function (a, d) { return a + d.monto; }, 0);
+    return {
+      saldo: f.saldo || 0,
+      noPropio: f.noPropio || 0,
+      propio: propio,
+      lista: lista,
+      asignado: asignado,
+      gastado: gastado,
+      disponible: disponible,
+      libre: propio - disponible,
+      porCobrar: porCobrar,
+      deuda: deuda,
+      /* Si esto no da cero, en algún lado se movió plata sin registrarla. */
+      descuadre: 0
+    };
   }
 
-  function finance(s, y, m) {
-    var rows = s.tx.filter(function (t) { return inMonth(t.date, y, m); });
-    var inc = 0, out = 0, byCat = {};
-    rows.forEach(function (t) {
-      if (t.type === 'in') { inc += t.amount; return; }
-      out += t.amount;
-      byCat[t.cat] = (byCat[t.cat] || 0) + t.amount;
-    });
-    var cats = s.cats
-      .filter(function (c) { return byCat[c.id] > 0; })
-      .map(function (c) { return { id: c.id, name: c.name, color: c.color, value: byCat[c.id], budget: c.budget }; })
-      .sort(function (a, b) { return b.value - a.value; });
-    return { income: inc, expense: out, balance: inc - out, cats: cats, rows: rows };
+  /* Los frascos agrupados por su función, en el orden en que el sistema
+     dice que hay que llenarlos. */
+  var TIPOS = [
+    { k: 'fijo',    l: 'Gastos fijos',   d: 'Pagos que ya sabés que van a ocurrir' },
+    { k: 'objetivo',l: 'Objetivos',      d: 'Plata protegida para una meta concreta' },
+    { k: 'finde',   l: 'Fines de semana',d: 'Ocio planificado, con tope decidido de antemano' },
+    { k: 'semana',  l: 'Semanas',        d: 'El día a día, partido por bloques de tiempo' },
+    { k: 'colchon', l: 'Colchón',        d: 'Para que un imprevisto no rompa el resto' }
+  ];
+
+  function porTipo(s) {
+    var f = frascos(s);
+    return TIPOS.map(function (t) {
+      var items = f.lista.filter(function (x) { return x.tipo === t.k; });
+      return {
+        tipo: t.k, label: t.l, desc: t.d, items: items,
+        asignado: items.reduce(function (a, x) { return a + (x.asignado || 0); }, 0),
+        disponible: items.reduce(function (a, x) { return a + (x.asignado || 0) - (x.gastado || 0); }, 0)
+      };
+    }).filter(function (g) { return g.items.length; });
   }
 
-  /* Gasto diario acumulado del mes, para la sparkline de la tarjeta. */
-  function expenseSeries(s, y, m) {
+  /* Gasto acumulado del mes a partir del registro de movimientos. */
+  function gastoDelMes(s, y, m) {
+    var movs = (s.fin && s.fin.movs) || [];
     var days = D.daysInMonth(y, m), acc = 0, out = [], t = D.today();
     for (var i = 1; i <= days; i++) {
       var d = new Date(y, m, i);
       if (d > t) break;
       var key = D.iso(d);
-      s.tx.forEach(function (x) { if (x.date === key && x.type === 'out') acc += x.amount; });
+      movs.forEach(function (x) { if (x.fecha === key && x.tipo === 'gasto') acc += x.monto; });
       out.push({ day: i, value: acc });
     }
     return out;
@@ -226,20 +280,25 @@
       ? (moods.reduce(function (a, e) { return a + e.mood; }, 0) / moods.length - 1) / 4 * 100
       : 0;
 
-    // Financiero: qué tan lejos quedó el gasto del presupuesto total.
-    var f = finance(s, t.getFullYear(), t.getMonth());
-    var totalBudget = s.cats.reduce(function (a, c) { return a + (c.budget || 0); }, 0);
-    var financiero = totalBudget
-      ? Math.max(0, Math.min(100, (1 - f.expense / totalBudget) * 100))
-      : (f.balance > 0 ? 100 : 0);
+    /* Financiero: mitad qué tan organizada está la plata —cuánta tiene un
+       trabajo asignado— y mitad cuánto margen queda dentro de los frascos.
+       Tener mucha plata sin asignar no puntúa: el sistema mide control, no
+       cantidad. */
+    var f = frascos(s);
+    var orden = f.propio > 0 ? Math.min(1, f.disponible / f.propio) : 0;
+    var margen = f.asignado > 0 ? Math.max(0, f.disponible / f.asignado) : 0;
+    var financiero = (f.asignado > 0 || f.propio > 0) ? (orden * 50 + margen * 50) : 0;
 
-    // Productividad: tareas cerradas + metas avanzando.
-    var doneT = s.tasks.filter(function (k) { return k.done; }).length;
-    var prod = s.tasks.length ? (doneT / s.tasks.length) * 100 : 0;
-    var goalAvg = s.goals.length
-      ? s.goals.reduce(function (a, g) { return a + Math.min(1, g.current / g.target); }, 0) / s.goals.length * 100
+    /* Productividad: tareas cerradas sobre el total, pero mirando sólo los
+       últimos 30 días. Una tarea de hace medio año ya no dice nada de cómo
+       venís esta semana. */
+    var tareas = s.tasks.filter(function (k) {
+      var d = k.due ? D.parse(k.due) : null;
+      return !d || (d >= from && d <= t);
+    });
+    var productividad = tareas.length
+      ? (tareas.filter(function (k) { return k.done; }).length / tareas.length) * 100
       : 0;
-    var productividad = prod * 0.5 + goalAvg * 0.5;
 
     // Disciplina: cumplimiento global de hábitos en 30 días.
     var disciplina = habitRate(function () { return true; });
@@ -270,7 +329,8 @@
     activeHabits: activeHabits, due: due, isDone: isDone,
     dayRate: dayRate, monthSeries: monthSeries, monthRate: monthRate, noteOfDay: noteOfDay,
     streak: streak, bestStreak: bestStreak, weekRate: weekRate, weekOverall: weekOverall,
-    finance: finance, expenseSeries: expenseSeries, trainingWeek: trainingWeek,
+    frascos: frascos, porTipo: porTipo, gastoDelMes: gastoDelMes, TIPOS: TIPOS,
+    trainingWeek: trainingWeek, habitMonthSeries: habitMonthSeries,
     moodSeries: moodSeries, radar: radar, score: score
   };
 

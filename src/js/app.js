@@ -8,26 +8,22 @@
   var esc = SL.esc;
 
   var NAV = [
-    { g: 'Diario' },
+    { g: 'Día a día' },
     { id: 'inicio',        t: 'Inicio',        i: 'inicio' },
     { id: 'tareas',        t: 'Tareas',        i: 'tareas' },
     { id: 'habitos',       t: 'Hábitos',       i: 'habitos' },
-    { id: 'metas',         t: 'Metas',         i: 'metas' },
     { id: 'finanzas',      t: 'Finanzas',      i: 'finanzas' },
     { id: 'agenda',        t: 'Agenda',        i: 'agenda' },
     { id: 'entrenamiento', t: 'Entrenamiento', i: 'entreno' },
     { id: 'enfoque',       t: 'Enfoque',       i: 'enfoque' },
-    { id: 'diario',        t: 'Diario',        i: 'diario' },
+    { id: 'journaling',    t: 'Journaling',    i: 'diario' },
     { g: 'Vos' },
     { id: 'progreso',      t: 'Progreso',      i: 'progreso' },
-    { id: 'logros',        t: 'Logros',        i: 'logros' },
-    { id: 'perfil',        t: 'Perfil',        i: 'perfil' },
-    { id: 'familia',       t: 'Familia',       i: 'familia' },
     { id: 'config',        t: 'Configuración', i: 'config' }
   ];
 
   // Lo que va en la barra de abajo en el teléfono: lo que se usa todos los días.
-  var TABS = ['inicio', 'habitos', 'finanzas', 'entrenamiento', 'diario'];
+  var TABS = ['inicio', 'habitos', 'finanzas', 'entrenamiento', 'journaling'];
 
   var current = 'inicio';
   var prevView = null;
@@ -194,7 +190,7 @@
     var params = new URLSearchParams(location.search);
     var atajo = params.get('a');
     var hash = location.hash.slice(1);
-    var start = hash || ({ gasto: 'finanzas', habitos: 'habitos', pausa: 'pausa', diario: 'diario' })[atajo] || 'inicio';
+    var start = hash || ({ gasto: 'finanzas', habitos: 'habitos', pausa: 'pausa', diario: 'journaling' })[atajo] || 'inicio';
     current = SL.views[start] ? start : 'inicio';
     SL.render();
 

@@ -10,6 +10,7 @@
   SL.views = SL.views || {};
   SL.views.config = function (root, s) {
     var st = s.settings;
+    var st2 = s.perfil || {};
 
     root.innerHTML =
       '<div class="page-head"><div>' +
@@ -54,22 +55,26 @@
           '<button class="btn btn--sm" data-ir="habitos">Ver</button>')
       ) +
 
-      seccion('Finanzas', 'Moneda, categorías y presupuestos',
+      seccion('Finanzas', 'Moneda y saldo de la cuenta',
         fila('Moneda', 'Se aplica a toda la app',
           '<select class="select" data-moneda style="width:auto">' +
-            ['USD','ARS','EUR','BRL','GBP'].map(function (c) {
-              return '<option' + (c === st.currency ? ' selected' : '') + '>' + c + '</option>';
+            ['ARS','USD','EUR','BRL','GBP'].map(function (x) {
+              return '<option' + (x === st.currency ? ' selected' : '') + '>' + x + '</option>';
             }).join('') + '</select>') +
-        '<div style="padding:var(--s4) 0 0"><div class="field__l" style="margin-bottom:10px">Presupuestos por categoría</div>' +
-        '<div style="display:grid;gap:8px" data-cats>' +
-          s.cats.filter(function (c) { return c.name !== 'Ingresos'; }).map(function (c) {
-            return '<div style="display:flex;align-items:center;gap:10px;--cc:var(--c-' + c.color + ')">' +
-              '<span class="dot-c"></span>' +
-              '<span style="font-size:var(--fs-sm);flex:1">' + esc(c.name) + '</span>' +
-              '<input class="input" type="number" min="0" data-budget="' + c.id + '" value="' + (c.budget || 0) +
-                '" style="width:120px;text-align:right">' +
-            '</div>';
-          }).join('') + '</div></div>'
+        fila('Frascos', SL.compute.frascos(s).lista.length + ' creados',
+          '<button class="btn btn--sm" data-ir="finanzas">Administrar</button>')
+      ) +
+
+      seccion('Tus datos', 'Para las estadísticas de entrenamiento y progreso',
+        campo('Nombre', 'nombre', 'text', st2.nombre || '', 'Cómo querés que te salude') +
+        campo('Fecha de nacimiento', 'nacimiento', 'date', st2.nacimiento || '', '') +
+        campo('Altura (cm)', 'altura', 'number', st2.altura || '', '') +
+        campo('Peso actual (kg)', 'peso', 'number', st2.peso || '', 'Cada vez que lo cambiás queda registrado, así se puede graficar') +
+        campo('Peso objetivo (kg)', 'objetivoPeso', 'number', st2.objetivoPeso || '', '') +
+        (st2.pesos && st2.pesos.length > 1
+          ? '<div class="peso-hist"><div class="field__l">Historial de peso</div>' +
+            '<div data-peso style="height:120px"></div></div>'
+          : '')
       ) +
 
       seccion('Idioma', 'Español, Portugués e Inglés',
@@ -84,6 +89,13 @@
         '<div id="pwa-estado"></div>'
       ) +
 
+      seccion('Compartir con otros', 'Por qué todavía no se puede',
+        '<p class="onboard__p" style="font-size:var(--fs-sm)">Compartir progreso entre personas necesita un ' +
+        'servidor y cuentas. Hoy StarkLab corre entero en tu dispositivo, que es justo lo que lo hace ' +
+        'andar sin señal y lo que garantiza que tus datos no salgan de acá. Cuando exista, el journaling ' +
+        'va a seguir siendo privado aunque el resto se comparta.</p>'
+      ) +
+
       seccion('Privacidad y datos', 'Tus datos son tuyos y viven en este dispositivo',
         fila('Exportar todo', 'Un JSON con hábitos, plata, entrenamientos y diario',
           '<div style="display:flex;gap:6px">' +
@@ -92,8 +104,8 @@
           '</div>') +
         fila('Importar', 'Restaurar desde un archivo exportado antes',
           '<button class="btn btn--sm" data-import>' + SL.icon('subir') + 'Importar</button>') +
-        fila('Datos de ejemplo', 'Volver a cargar el mes de demostración, pisando lo que haya',
-          '<button class="btn btn--sm" data-demo>Recargar demo</button>') +
+        fila('Datos de ejemplo', 'Cargar dos meses inventados para ver cómo se comportan los gráficos. Pisa lo que tengas.',
+          '<button class="btn btn--sm" data-demo>Cargar ejemplo</button>') +
         fila('Borrar todo', 'Elimina cada dato de este dispositivo. No se puede deshacer.',
           '<button class="btn btn--sm btn--danger" data-wipe>' + SL.icon('tacho') + 'Borrar</button>')
       );
@@ -185,15 +197,31 @@
       SL.store.update(function (x) { x.settings.currency = e.target.value; });
     });
 
-    SL.$$('[data-budget]', root).forEach(function (i) {
+    /* — datos personales —
+       El peso guarda historial: cada cambio queda con su fecha, así el
+       número de hoy no borra de dónde venías. */
+    SL.$$('[data-perfil]', root).forEach(function (i) {
       i.addEventListener('change', function () {
+        var k = i.dataset.perfil;
+        var v = i.type === 'number' ? (parseFloat(i.value) || null) : i.value;
         SL.store.update(function (x) {
-          var c = x.cats.filter(function (y) { return y.id === i.dataset.budget; })[0];
-          if (c) c.budget = Math.max(0, +i.value || 0);
+          if (k === 'peso' && v && v !== x.perfil.peso) {
+            x.perfil.pesos = x.perfil.pesos || [];
+            x.perfil.pesos.push({ fecha: D.iso(D.today()), kg: v });
+          }
+          x.perfil[k] = v;
         });
-        SL.notify.checkBudget();
+        SL.toast('Guardado');
       });
     });
+
+    var pesoHost = SL.$('[data-peso]', root);
+    if (pesoHost && st2.pesos && st2.pesos.length > 1) {
+      SL.charts.spark(pesoHost, {
+        data: st2.pesos.map(function (x, i) { return { day: i, value: x.kg }; }),
+        color: 'var(--c-cian)', height: 120
+      });
+    }
 
     SL.$$('[data-ir]', root).forEach(function (b) {
       b.addEventListener('click', function () { SL.go(b.dataset.ir); });
@@ -248,11 +276,11 @@
     });
 
     SL.$('[data-demo]', root).addEventListener('click', function () {
-      SL.confirm('Recargar datos de ejemplo',
-        'Se van a pisar todos tus datos actuales con el mes de demostración. Esto no se puede deshacer.',
-        'Sí, recargar').then(function (ok) {
+      SL.confirm('Cargar datos de ejemplo',
+        'Se van a pisar todos tus datos actuales con dos meses inventados. Esto no se puede deshacer.',
+        'Sí, cargar').then(function (ok) {
         if (!ok) return;
-        SL.store.reset(); SL.toast('Datos de ejemplo recargados'); SL.render();
+        SL.store.demo(); SL.toast('Datos de ejemplo cargados'); SL.render();
       });
     });
 
@@ -272,6 +300,18 @@
         '<div class="card__title">' + esc(titulo) + '</div>' +
         '<div class="card__sub">' + esc(sub) + '</div>' +
       '</div></div>' + contenido + '</div>';
+  }
+
+  /* Una fila de configuración cuyo control es un input suelto. */
+  function campo(label, key, tipo, valor, ayuda) {
+    return '<div class="cfg-row">' +
+      '<div class="cfg-row__txt">' +
+        '<div class="cfg-row__t">' + esc(label) + '</div>' +
+        (ayuda ? '<div class="card__sub">' + esc(ayuda) + '</div>' : '') +
+      '</div>' +
+      '<input class="input" data-perfil="' + key + '" type="' + tipo + '" ' +
+        'value="' + esc(String(valor)) + '" style="width:min(190px,42vw)">' +
+    '</div>';
   }
 
   function fila(t, s, control) {

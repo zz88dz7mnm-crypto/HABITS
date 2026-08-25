@@ -7,133 +7,6 @@
   var C = SL.compute, D = SL.date, esc = SL.esc;
   SL.views = SL.views || {};
 
-  /* ————————————————— METAS ————————————————— */
-  SL.views.metas = function (root, s) {
-    root.innerHTML =
-      '<div class="page-head"><div>' +
-        '<h1 class="page-head__t">Metas</h1>' +
-        '<p class="page-head__s">Lo grande, partido en números que se pueden mover.</p>' +
-      '</div><div class="page-head__actions">' +
-        '<button class="btn btn--primary" data-nueva>' + SL.icon('mas') + 'Nueva meta</button>' +
-      '</div></div>' +
-      '<div class="grid grid--2" data-lista></div>';
-
-    var lista = SL.$('[data-lista]', root);
-    lista.innerHTML = s.goals.length ? s.goals.map(function (g) {
-      var p = Math.min(1, g.current / g.target);
-      var due = D.parse(g.due);
-      var left = Math.ceil((due - D.today()) / 86400000);
-      return '<div class="card" style="--cc:var(--c-' + g.color + ')">' +
-        '<div style="display:flex;gap:var(--s4);align-items:center">' +
-          '<div data-ring="' + g.id + '" style="width:88px;height:88px;flex:none"></div>' +
-          '<div style="flex:1;min-width:0">' +
-            '<div class="card__title" style="margin-bottom:3px">' + esc(g.name) + '</div>' +
-            '<div class="card__sub">' + fmtN(g.current) + ' de ' + fmtN(g.target) + ' ' + esc(g.metric) + '</div>' +
-            '<div class="card__sub" style="margin-top:5px;color:' +
-              (left < 0 ? 'var(--err)' : left < 14 ? 'var(--warn)' : 'var(--text-3)') + '">' +
-              (left < 0 ? 'Venció hace ' + Math.abs(left) + ' días' : 'Quedan ' + left + ' días') + '</div>' +
-            '<div style="display:flex;gap:6px;margin-top:10px">' +
-              '<button class="btn btn--sm" data-add="' + g.id + '">+ Avance</button>' +
-              '<button class="btn btn--sm btn--ghost" data-ed="' + g.id + '">Editar</button>' +
-            '</div>' +
-          '</div>' +
-        '</div></div>';
-    }).join('') : empty('🎯', 'Sin metas', 'Una meta es un número con fecha. Empezá por una.');
-
-    s.goals.forEach(function (g) {
-      var n = SL.$('[data-ring="' + g.id + '"]', root);
-      if (n) SL.charts.ring(n, { value: Math.min(1, g.current / g.target), color: g.color, height: 88 });
-    });
-
-    lista.addEventListener('click', function (e) {
-      var a = e.target.closest('[data-add]');
-      if (a) return avance(a.dataset.add);
-      var ed = e.target.closest('[data-ed]');
-      if (ed) return metaModal(ed.dataset.ed);
-    });
-    SL.$('[data-nueva]', root).addEventListener('click', function () { metaModal(null); });
-  };
-
-  function fmtN(v) { return (Math.round(v * 100) / 100).toLocaleString('es-AR'); }
-
-  function avance(id) {
-    var g = SL.store.get().goals.filter(function (x) { return x.id === id; })[0];
-    SL.modal({
-      title: 'Avance en “' + g.name + '”',
-      body: '<div class="field"><label class="field__l">Valor actual (' + esc(g.metric) + ')</label>' +
-        '<input class="input" data-v type="number" step="any" value="' + g.current + '"></div>',
-      onOk: function (b) {
-        var v = parseFloat(SL.$('[data-v]', b).value);
-        if (isNaN(v)) return false;
-        SL.store.update(function (st) {
-          var r = st.goals.filter(function (x) { return x.id === id; })[0];
-          if (r) r.current = v;
-        });
-        SL.toast('Avance guardado');
-        return true;
-      }
-    });
-  }
-
-  function metaModal(id) {
-    var s = SL.store.get();
-    var g = id ? s.goals.filter(function (x) { return x.id === id; })[0] : null;
-    var color = g ? g.color : SL.PALETTE[s.goals.length % 8];
-    var body = SL.h('<div style="display:grid;gap:var(--s4)">' +
-      '<div class="field"><label class="field__l">Nombre</label>' +
-        '<input class="input" data-n value="' + (g ? esc(g.name) : '') + '" placeholder="Ej: Correr 10 km"></div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--s3)">' +
-        '<div class="field"><label class="field__l">Actual</label>' +
-          '<input class="input" data-c type="number" step="any" value="' + (g ? g.current : 0) + '"></div>' +
-        '<div class="field"><label class="field__l">Objetivo</label>' +
-          '<input class="input" data-t type="number" step="any" value="' + (g ? g.target : 100) + '"></div>' +
-        '<div class="field"><label class="field__l">Unidad</label>' +
-          '<input class="input" data-u value="' + (g ? esc(g.metric) : '') + '" placeholder="km"></div>' +
-      '</div>' +
-      '<div class="field"><label class="field__l">Fecha límite</label>' +
-        '<input class="input" data-d type="date" value="' + (g ? g.due : D.iso(D.addDays(D.today(), 90))) + '"></div>' +
-      '<div class="field"><label class="field__l">Color</label>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap" data-colors>' +
-          SL.PALETTE.map(function (c) {
-            return '<button type="button" data-c2="' + c + '" style="width:30px;height:30px;border-radius:9px;' +
-              'background:var(--c-' + c + ');border:2px solid ' + (c === color ? 'var(--text)' : 'transparent') + '"></button>';
-          }).join('') + '</div></div>' +
-      (g ? '<button class="btn btn--danger" data-del style="width:fit-content">Borrar meta</button>' : '') +
-    '</div>');
-
-    SL.$('[data-colors]', body).addEventListener('click', function (e) {
-      var b = e.target.closest('[data-c2]'); if (!b) return;
-      color = b.dataset.c2;
-      SL.$$('[data-c2]', body).forEach(function (x) { x.style.borderColor = x === b ? 'var(--text)' : 'transparent'; });
-    });
-    if (g) SL.$('[data-del]', body).addEventListener('click', function () {
-      SL.store.update(function (st) { st.goals = st.goals.filter(function (x) { return x.id !== id; }); });
-      SL.toast('Meta borrada');
-      var x = SL.$('.modal-bg [data-x]'); if (x) x.click();
-    });
-
-    SL.modal({
-      title: g ? 'Editar meta' : 'Nueva meta', body: body, okText: g ? 'Guardar' : 'Crear',
-      onOk: function (b) {
-        var name = SL.$('[data-n]', b).value.trim();
-        if (!name) { SL.toast('Poné un nombre', 'err'); return false; }
-        var data = {
-          name: name,
-          current: parseFloat(SL.$('[data-c]', b).value) || 0,
-          target: parseFloat(SL.$('[data-t]', b).value) || 1,
-          metric: SL.$('[data-u]', b).value.trim() || 'unidades',
-          due: SL.$('[data-d]', b).value, color: color
-        };
-        SL.store.update(function (st) {
-          if (g) Object.assign(st.goals.filter(function (x) { return x.id === id; })[0], data);
-          else st.goals.push(Object.assign({ id: SL.uid('g') }, data));
-        });
-        SL.toast(g ? 'Meta actualizada' : 'Meta creada');
-        return true;
-      }
-    });
-  }
-
   /* ————————————————— TAREAS ————————————————— */
   SL.views.tareas = function (root, s) {
     var pend = s.tasks.filter(function (k) { return !k.done; })
@@ -307,10 +180,11 @@
           [15, 25, 45, 60].map(function (p) {
             return '<button class="seg__b' + (p === preset ? ' is-on' : '') + '" data-p="' + p + '">' + p + ' min</button>';
           }).join('') + '</div>' +
-        '<div style="display:flex;gap:var(--s3)">' +
-          '<button class="btn btn--primary" data-toggle>' + SL.icon(focus.on ? 'pause2' : 'play') +
+        '<div class="focus-acc">' +
+          '<button class="btn btn--primary btn--lg" data-toggle>' + SL.icon(focus.on ? 'pause2' : 'play') +
             (focus.on ? 'Pausar' : 'Empezar') + '</button>' +
-          '<button class="btn" data-reset>' + SL.icon('reload') + 'Reiniciar</button>' +
+          '<button class="icon-btn" data-reset aria-label="Volver a empezar el bloque" ' +
+            'title="Volver a empezar">' + SL.icon('reload') + '</button>' +
         '</div>' +
       '</div>' +
       (hoy.length ? '<div class="card"><div class="card__head"><div><div class="card__title">Sesiones de hoy</div></div></div>' +
@@ -358,101 +232,6 @@
       SL.store.update(function (st) { st.focus.preset = +b.dataset.p; });
     });
   };
-
-  /* ————————————————— LOGROS ————————————————— */
-  SL.views.logros = function (root, s) {
-    var habits = C.activeHabits(s);
-    var maxStreak = Math.max.apply(null, [0].concat(habits.map(function (h) { return C.bestStreak(s, h); })));
-    var totalChecks = Object.keys(s.checks).reduce(function (a, k) { return a + Object.keys(s.checks[k]).length; }, 0);
-    var t = D.today();
-    var mesRate = C.monthRate(s, t.getFullYear(), t.getMonth());
-    var jEntries = s.journal.filter(function (e) { return e.text && e.text.trim(); }).length;
-    var trained = Object.keys(s.training.logs).filter(function (k) { return s.training.logs[k].done; }).length;
-    var goalsDone = s.goals.filter(function (g) { return g.current >= g.target; }).length;
-
-    var L = [
-      { e: '🌱', n: 'Primer paso',       d: 'Marcaste tu primer hábito',        ok: totalChecks >= 1,   p: Math.min(1, totalChecks / 1) },
-      { e: '🔥', n: 'Una semana',        d: '7 días seguidos con un hábito',    ok: maxStreak >= 7,     p: Math.min(1, maxStreak / 7) },
-      { e: '⚡', n: 'Un mes entero',     d: '30 días seguidos con un hábito',   ok: maxStreak >= 30,    p: Math.min(1, maxStreak / 30) },
-      { e: '💯', n: 'Centenario',        d: '100 marcas en total',              ok: totalChecks >= 100, p: Math.min(1, totalChecks / 100) },
-      { e: '🎯', n: 'Mes redondo',       d: '80% de cumplimiento en el mes',    ok: mesRate >= .8,      p: Math.min(1, mesRate / .8) },
-      { e: '📓', n: 'Cronista',          d: '10 entradas en el diario',         ok: jEntries >= 10,     p: Math.min(1, jEntries / 10) },
-      { e: '💪', n: 'Constante',         d: '20 entrenamientos registrados',    ok: trained >= 20,      p: Math.min(1, trained / 20) },
-      { e: '🏆', n: 'Meta cumplida',     d: 'Completaste una meta entera',      ok: goalsDone >= 1,     p: Math.min(1, goalsDone / 1) },
-      { e: '🗓️', n: 'Medio año',        d: '500 marcas en total',              ok: totalChecks >= 500, p: Math.min(1, totalChecks / 500) }
-    ];
-    var got = L.filter(function (x) { return x.ok; }).length;
-
-    root.innerHTML =
-      '<div class="page-head"><div>' +
-        '<h1 class="page-head__t">Logros</h1>' +
-        '<p class="page-head__s">' + got + ' de ' + L.length + ' desbloqueados</p>' +
-      '</div></div>' +
-      '<div class="grid grid--3">' + L.map(function (x) {
-        return '<div class="card" style="opacity:' + (x.ok ? 1 : .62) + '">' +
-          '<div style="display:flex;gap:var(--s3);align-items:flex-start">' +
-            '<span style="font-size:28px;line-height:1;' + (x.ok ? '' : 'filter:grayscale(1);opacity:.5') + '">' + x.e + '</span>' +
-            '<div style="flex:1;min-width:0">' +
-              '<div class="card__title" style="font-size:var(--fs-sm)">' + esc(x.n) + '</div>' +
-              '<div class="card__sub" style="margin-bottom:8px">' + esc(x.d) + '</div>' +
-              '<div style="height:4px;border-radius:99px;background:var(--border-soft);overflow:hidden">' +
-                '<div style="height:100%;border-radius:99px;background:' +
-                  (x.ok ? 'var(--grad)' : 'var(--text-3)') + ';width:' + Math.round(x.p * 100) + '%"></div></div>' +
-            '</div>' +
-            (x.ok ? '<span style="color:var(--ok);width:16px;height:16px">' + SL.icon('check') + '</span>' : '') +
-          '</div></div>';
-      }).join('') + '</div>';
-  };
-
-  /* ————————————————— PERFIL / FAMILIA ————————————————— */
-  SL.views.perfil = function (root, s) {
-    var t = D.today();
-    var totalChecks = Object.keys(s.checks).reduce(function (a, k) { return a + Object.keys(s.checks[k]).length; }, 0);
-    var first = s.habits.map(function (h) { return h.createdAt; }).sort()[0] || D.iso(t);
-    var days = Math.max(1, Math.round((t - D.parse(first)) / 86400000));
-
-    root.innerHTML =
-      '<div class="page-head"><div>' +
-        '<h1 class="page-head__t">Perfil</h1>' +
-        '<p class="page-head__s">Tu historia en StarkLab</p>' +
-      '</div></div>' +
-      '<div class="grid grid--4">' +
-        mini('Días usando la app', days, 'cian') +
-        mini('Marcas totales', totalChecks, 'verde') +
-        mini('Hábitos activos', C.activeHabits(s).length, 'ambar') +
-        mini('Índice general', C.score(s), 'violeta') +
-      '</div>' +
-      '<div class="card"><div class="card__head"><div>' +
-        '<div class="card__title">Tus datos</div>' +
-        '<div class="card__sub">Todo vive en este dispositivo. Nada se sube a ningún servidor.</div>' +
-      '</div></div>' +
-      '<p style="color:var(--text-2);line-height:1.65;font-size:var(--fs-sm)">' +
-        'StarkLab guarda hábitos, plata, entrenamientos y diario en el almacenamiento local de tu navegador. ' +
-        'Podés llevártelo todo o borrarlo entero desde <b>Configuración → Privacidad</b>.</p></div>';
-  };
-
-  SL.views.familia = function (root, s) {
-    root.innerHTML =
-      '<div class="page-head"><div>' +
-        '<h1 class="page-head__t">Familia</h1>' +
-        '<p class="page-head__s">Compartir progreso con quien vos elijas</p>' +
-      '</div></div>' +
-      '<div class="card">' +
-        '<div class="empty">' +
-          '<div class="empty__i">👥</div>' +
-          '<div class="empty__t">Todavía no está disponible</div>' +
-          '<div class="empty__s">Compartir entre personas necesita un servidor y cuentas, y hoy StarkLab ' +
-            'funciona entero en tu dispositivo, sin backend. Es lo que hace que ande offline y que tus datos ' +
-            'no salgan de acá. Cuando exista, el diario va a seguir siendo privado aunque el resto se comparta.</div>' +
-        '</div>' +
-      '</div>';
-  };
-
-  function mini(label, value, color) {
-    return '<div class="card"><div class="stat" style="--cc:var(--c-' + color + ')">' +
-      '<div class="stat__label">' + esc(label) + '</div>' +
-      '<div class="stat__value u-num">' + value + '</div></div></div>';
-  }
 
   function empty(i, t, s2) {
     return '<div class="empty" style="grid-column:1/-1"><div class="empty__i">' + i + '</div>' +
