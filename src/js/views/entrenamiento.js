@@ -11,42 +11,143 @@
   var pickedDay = null;
   var side = 'front';
 
-  /* Grupos musculares.
-     Todas las formas están dibujadas sobre la mitad izquierda de un lienzo
-     de 200×260 y se reflejan sobre el eje central (x = 100). Así el cuerpo
-     sale simétrico sin escribir cada músculo dos veces, y con corregir una
-     forma quedan bien los dos lados. */
-  var MUSCLES = {
-    pecho:      { label: 'Pecho',      view: 'front', paths: ['M100 63 L85 65 Q80 70 82 79 Q88 87 100 87 Z'] },
-    hombros:    { label: 'Hombros',    view: 'both',  paths: ['M79 54 Q68 56 64 65 Q62 72 65 77 L75 73 Q76 61 81 57 Z'] },
-    biceps:     { label: 'Bíceps',     view: 'front', paths: ['M65 79 Q60 90 60 102 Q61 110 65 109 Q69 96 72 82 Z'] },
-    triceps:    { label: 'Tríceps',    view: 'back',  paths: ['M64 79 Q58 91 58 104 Q59 111 64 110 Q68 97 71 82 Z'] },
-    antebrazo:  { label: 'Antebrazo',  view: 'both',  paths: ['M60 117 Q56 129 56 140 Q57 146 61 145 Q63 132 64 119 Z'] },
-    abdomen:    { label: 'Abdomen',    view: 'front', paths: ['M100 89 L85 89 Q81 104 83 123 Q91 130 100 130 Z'] },
-    oblicuos:   { label: 'Oblicuos',   view: 'front', paths: ['M83 91 Q77 104 79 121 Q81 126 84 124 Q81 108 84 91 Z'] },
-    espalda:    { label: 'Espalda',    view: 'back',  paths: ['M100 61 L83 64 Q77 77 81 94 Q88 106 100 108 Z'] },
-    lumbar:     { label: 'Lumbar',     view: 'back',  paths: ['M100 113 L85 113 Q81 122 85 131 Q93 135 100 134 Z'] },
-    trapecio:   { label: 'Trapecio',   view: 'back',  paths: ['M100 47 L83 53 Q78 59 82 63 Q92 59 100 59 Z'] },
-    gluteos:    { label: 'Glúteos',    view: 'back',  paths: ['M100 139 L85 137 Q78 145 81 156 Q90 162 100 158 Z'] },
-    cuadriceps: { label: 'Cuádriceps', view: 'front', paths: ['M98 149 L86 147 Q81 163 82 182 Q85 194 91 192 Q96 170 98 151 Z'] },
-    isquios:    { label: 'Isquios',    view: 'back',  paths: ['M98 161 L85 159 Q81 176 83 193 Q87 201 92 199 Q96 180 98 163 Z'] },
-    gemelos:    { label: 'Gemelos',    view: 'both',  paths: ['M94 203 Q88 207 86 219 Q85 231 89 234 L93 233 Q95 218 95 205 Z'] }
+  /* ============================================================
+     El cuerpo
+     Lienzo de 200x320, centro en x=100. Todo se dibuja sobre la mitad
+     izquierda y se refleja: el cuerpo sale simétrico y corregir una
+     forma arregla los dos lados.
+
+     Proporciones de canon: cabeza 1/8 de la altura, hombros al ancho de
+     dos cabezas, cintura marcada, rodilla a 3/4. La silueta va por
+     partes —torso, brazo, pierna, pie— para que los brazos se despeguen
+     del cuerpo y las piernas se separen.
+     ============================================================ */
+  var CUERPO = {
+    // Mitad izquierda, se refleja sobre x=100
+    silueta: [
+      // torso: cuello → trapecio → hombro → dorsal → cintura → cadera
+      'M100 54 C93 55 85 58 79 64 C71 70 63 76 60 86 L59 98 ' +
+      'C62 110 67 122 70 134 L73 150 C73 160 71 168 69 176 ' +
+      'C68 184 70 190 75 194 L100 196 Z',
+      // brazo entero: deltoides → bíceps → codo → antebrazo → muñeca
+      'M61 84 C51 89 46 100 46 114 C46 130 48 141 50 151 ' +
+      'C48 166 46 181 46 195 C46 203 49 208 54 208 C58 208 61 203 60 195 ' +
+      'C60 180 61 165 62 152 C63 138 64 112 65 90 Z',
+      // mano
+      'M54 210 C48 214 46 222 48 230 C51 236 57 237 60 232 C62 224 61 214 58 210 Z',
+      // pierna: muslo → rodilla → pantorrilla → tobillo
+      'M98 198 L76 196 C69 210 66 228 67 244 C68 252 70 258 73 262 ' +
+      'C71 274 70 288 71 299 C72 306 75 310 79 310 C85 310 88 306 88 299 ' +
+      'C89 286 91 272 93 261 C95 246 97 222 98 202 Z',
+      // pie
+      'M72 312 C67 316 65 322 67 326 L90 326 C92 320 90 314 87 312 Z'
+    ],
+    // Sobre el eje, no se reflejan
+    centro: [
+      'M91 40 L109 40 L109 58 L91 58 Z'                       // cuello
+    ]
   };
 
-  /* La silueta, también en mitades. Se dibuja por partes —torso, hombro,
-     brazo, antebrazo, mano, muslo, pantorrilla y pie— en vez de con un
-     contorno único: así los brazos se despegan del cuerpo y las piernas se
-     separan, que es lo que hace que se lea como un cuerpo y no como una mancha. */
-  var SILUETA = [
-    'M100 48 L79 54 Q72 59 74 69 L77 97 Q79 113 83 125 L85 141 L100 144 Z',  // torso
-    'M79 52 Q67 55 63 65 Q61 73 64 79 L75 74 Q76 60 81 56 Z',                // deltoides
-    'M64 77 Q58 90 58 103 Q58 112 63 113 Q68 99 73 80 Z',                    // brazo
-    'M59 115 Q54 129 54 142 Q55 150 60 149 Q63 134 64 117 Z',                // antebrazo
-    'M55 151 Q51 157 53 163 Q57 166 60 162 Q61 155 60 151 Z',                // mano
-    'M100 146 L85 143 Q79 161 80 183 Q81 197 86 199 L95 197 Q99 172 100 149 Z', // muslo
-    'M95 201 Q87 205 85 220 Q84 234 88 238 L94 237 Q97 220 97 203 Z',        // pantorrilla
-    'M88 240 Q83 246 84 251 L97 251 Q98 245 95 241 Z'                        // pie
-  ];
+  /* Grupos musculares. Las formas siguen la anatomía real: el pectoral
+     es un abanico desde el esternón, el dorsal la V que sube al hueco de
+     la axila, el vasto medial la lágrima arriba de la rodilla. */
+  var MUSCLES = {
+    /* ---------- frente ---------- */
+    pecho: {
+      label: 'Pecho', view: 'front',
+      // Abanico desde el esternón: borde superior sobre la clavícula,
+      // borde externo hacia la axila, borde inferior de vuelta al centro.
+      paths: ['M97 78 L77 83 C70 88 67 95 68 102 C76 109 87 113 97 113 Z']
+    },
+    hombros: {
+      label: 'Hombros', view: 'both',
+      paths: ['M65 78 C55 83 50 94 50 106 C50 112 54 115 58 113 C61 105 62 90 67 83 Z']
+    },
+    biceps: {
+      label: 'Bíceps', view: 'front',
+      paths: ['M62 98 C55 103 52 115 53 127 C54 137 58 143 62 141 C63 128 63 111 65 100 Z']
+    },
+    triceps: {
+      label: 'Tríceps', view: 'back',
+      // Herradura: cabeza larga interna y lateral externa
+      paths: ['M62 96 C55 101 51 114 52 128 C53 138 57 144 61 142 C62 127 62 110 64 98 Z',
+              'M57 106 C53 116 52 126 54 134']
+    },
+    antebrazo: {
+      label: 'Antebrazo', view: 'both',
+      paths: ['M57 150 C51 160 49 174 50 188 C51 196 55 200 58 197 C60 183 60 164 61 152 Z']
+    },
+    abdomen: {
+      label: 'Abdomen', view: 'front',
+      // El recto abdominal se dibuja segmentado. Un bloque liso no se lee
+      // como abdomen: son las intersecciones tendinosas las que lo hacen.
+      paths: [
+        'M98 116 L88 118 C87 124 87 129 88 134 L98 133 Z',
+        'M98 137 L88 138 C87 144 87 149 88 154 L98 153 Z',
+        'M98 157 L88 158 C88 163 88 167 89 172 L98 171 Z',
+        'M98 175 L89 175 C90 180 92 184 96 187 L98 187 Z'
+      ]
+    },
+    oblicuos: {
+      label: 'Oblicuos', view: 'front',
+      paths: ['M86 118 C78 126 75 142 77 160 C79 168 83 172 86 172 C83 154 83 134 86 120 Z']
+    },
+    serrato: {
+      label: 'Serrato', view: 'front',
+      paths: ['M79 102 L71 106', 'M80 110 L72 115', 'M82 118 L75 123'],
+      trazo: true
+    },
+    /* ---------- espalda ---------- */
+    trapecio: {
+      label: 'Trapecio', view: 'back',
+      // Fibras altas hacia el hombro, y las bajas bajando junto a la columna.
+      paths: ['M97 57 C88 59 80 64 74 72 C72 76 74 80 78 79 C85 73 91 70 97 69 Z',
+              'M97 73 C90 77 84 85 81 95 C80 102 83 108 86 109 C90 99 94 90 97 85 Z']
+    },
+    dorsal: {
+      label: 'Dorsal', view: 'back',
+      // La V al revés: ancho en la zona lumbar y angostándose al subir
+      // hasta el hueco de la axila. Es lo que da la espalda en V.
+      paths: ['M97 102 C90 108 83 118 79 131 C76 142 76 152 80 160 C84 165 89 163 91 158 C94 142 96 119 97 106 Z']
+    },
+    espalda: {
+      label: 'Espalda media', view: 'back',
+      // Romboides: entre la columna y el omóplato.
+      paths: ['M97 88 C91 91 86 97 84 105 C83 111 85 116 88 117 C91 109 94 100 97 96 Z']
+    },
+    lumbar: {
+      label: 'Lumbar', view: 'back',
+      paths: ['M99 152 L88 154 C86 162 86 174 88 182 C92 187 96 187 99 184 Z']
+    },
+    gluteos: {
+      label: 'Glúteos', view: 'back',
+      paths: ['M99 184 C88 183 79 188 75 198 C73 209 76 219 83 223 C91 225 96 221 99 214 Z']
+    },
+    /* ---------- piernas ---------- */
+    cuadriceps: {
+      label: 'Cuádriceps', view: 'front',
+      paths: [
+        'M85 198 C75 205 70 223 71 241 C72 249 76 253 80 251 C83 233 84 213 86 200 Z', // vasto lateral
+        'M97 198 L87 200 C85 217 85 236 87 250 C90 253 94 252 96 248 C97 230 97 212 97 200 Z', // recto femoral
+        'M96 234 C91 236 89 244 90 252 C92 258 96 259 98 255 C98 246 97 238 96 234 Z'  // vasto medial
+      ]
+    },
+    aductores: {
+      label: 'Aductores', view: 'front',
+      paths: ['M99 196 L89 198 C87 212 88 228 91 238 C95 240 98 238 99 234 Z']
+    },
+    isquios: {
+      label: 'Isquios', view: 'back',
+      paths: ['M97 218 L83 220 C78 232 77 246 79 256 C83 261 89 260 92 255 C95 242 96 230 97 220 Z']
+    },
+    gemelos: {
+      label: 'Gemelos', view: 'back',
+      paths: [
+        'M93 264 C86 268 83 279 84 291 C86 298 90 300 93 296 C95 283 94 272 93 264 Z',
+        'M83 266 C79 272 78 282 80 290'
+      ]
+    }
+  };
 
   SL.views = SL.views || {};
   SL.views.entrenamiento = function (root, s) {
@@ -229,58 +330,76 @@
     var NS = 'http://www.w3.org/2000/svg';
     host.innerHTML = '';
     var svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 200 260');
+    svg.setAttribute('viewBox', '0 0 200 336');
     svg.setAttribute('width', '100%');
-    svg.setAttribute('style', 'max-width:230px;height:auto');
+    svg.setAttribute('style', 'max-width:250px;height:auto');
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', 'Mapa muscular: ' +
-      (active.length ? active.map(function (m) { return MUSCLES[m].label; }).join(', ') : 'ninguno marcado'));
+      (active.length ? active.map(function (m) { return MUSCLES[m] ? MUSCLES[m].label : m; }).join(', ')
+                     : 'ninguno marcado'));
 
     function add(tag, attrs, parent) {
       var n = document.createElementNS(NS, tag);
-      for (var k in attrs) n.setAttribute(k, attrs[k]);
+      for (var k in attrs) if (attrs[k] !== null && attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
       (parent || svg).appendChild(n);
       return n;
     }
+    var espejo = 'translate(200,0) scale(-1,1)';
 
-    var body = 'var(--card-2)';
-    var edge = 'var(--border)';
+    var relleno = 'var(--card-2)';
+    var borde = 'var(--border)';
 
+    /* — silueta — */
     var g = add('g', {});
-    SILUETA.forEach(function (d) {
-      add('path', { d: d, fill: body, stroke: edge, 'stroke-width': 1, 'stroke-linejoin': 'round' }, g);
-      add('path', { d: d, fill: body, stroke: edge, 'stroke-width': 1, 'stroke-linejoin': 'round',
-        transform: 'translate(200,0) scale(-1,1)' }, g);
+    CUERPO.silueta.forEach(function (d) {
+      [null, espejo].forEach(function (tr) {
+        add('path', {
+          d: d, fill: relleno, stroke: borde, 'stroke-width': 1,
+          'stroke-linejoin': 'round', transform: tr
+        }, g);
+      });
     });
-    // Cuello y cabeza van enteros: están sobre el eje, no se reflejan.
-    add('path', { d: 'M93 36 h14 v13 h-14 Z', fill: body, stroke: edge, 'stroke-width': 1 }, g);
-    add('ellipse', { cx: 100, cy: 26, rx: 12.5, ry: 14.5, fill: body, stroke: edge, 'stroke-width': 1 }, g);
+    CUERPO.centro.forEach(function (d) {
+      add('path', { d: d, fill: relleno, stroke: borde, 'stroke-width': 1 }, g);
+    });
+    add('ellipse', { cx: 100, cy: 26, rx: 15, ry: 19, fill: relleno, stroke: borde, 'stroke-width': 1 }, g);
 
-    /* Grupos activos, encima de la silueta */
+    /* — línea del esternón o de la columna: da referencia y hace que el
+         torso se lea como torso y no como una mancha — */
+    add('path', {
+      d: view === 'front' ? 'M100 66 L100 178' : 'M100 60 L100 186',
+      stroke: borde, 'stroke-width': 1, fill: 'none', opacity: .8
+    }, g);
+
+    /* — grupos activos — */
+    var pintados = 0;
     active.forEach(function (key, i) {
       var mus = MUSCLES[key];
       if (!mus) return;
       if (mus.view !== 'both' && mus.view !== view) return;
-      var col = 'var(--c-' + muscleColor(i) + ')';
+      var col = 'var(--c-' + muscleColor(pintados) + ')';
+      pintados++;
+
       mus.paths.forEach(function (d) {
-        [1, -1].forEach(function (sx) {
-          var p = add('path', {
-            d: d, fill: col, opacity: 0,
-            stroke: col, 'stroke-width': .5, 'stroke-linejoin': 'round',
-            transform: sx === -1 ? 'translate(200,0) scale(-1,1)' : ''
-          });
-          p.style.filter = 'drop-shadow(0 0 4px ' + col + ')';
-          p.style.transition = 'opacity .5s var(--e-out) ' + (i * 90) + 'ms';
-          requestAnimationFrame(function () { p.setAttribute('opacity', '.9'); });
+        [null, espejo].forEach(function (tr) {
+          var atrs = mus.trazo
+            ? { d: d, fill: 'none', stroke: col, 'stroke-width': 2.4, 'stroke-linecap': 'round' }
+            : { d: d, fill: col, stroke: col, 'stroke-width': .6, 'stroke-linejoin': 'round' };
+          atrs.opacity = 0;
+          atrs.transform = tr;
+          var pth = add('path', atrs);
+          pth.style.filter = 'drop-shadow(0 0 2.5px ' + col + ')';
+          pth.style.transition = 'opacity .45s var(--e-out) ' + (i * 80) + 'ms';
+          requestAnimationFrame(function () { pth.setAttribute('opacity', mus.trazo ? '.85' : '.88'); });
         });
       });
     });
 
-    if (!active.length) {
+    if (!pintados) {
       add('text', {
-        x: 100, y: 256, 'text-anchor': 'middle', fill: 'var(--text-3)',
+        x: 100, y: 334, 'text-anchor': 'middle', fill: 'var(--text-3)',
         'font-size': 9, 'font-family': 'var(--font)'
-      }).textContent = 'Día de descanso';
+      }).textContent = active.length ? 'Nada de este lado' : 'Día de descanso';
     }
 
     host.appendChild(svg);
