@@ -27,24 +27,16 @@
   SL.views = SL.views || {};
 
   SL.views.pausa = function (root, s) {
-    var escena = s.settings.pauseScene || 'luna';
-
     root.innerHTML =
       '<div class="pausa" data-pausa>' +
-        '<div class="pausa__escena" data-escena-host></div>' +
-        '<canvas class="pausa__sky" data-sky aria-hidden="true"></canvas>' +
+        '<div class="pausa__luna" data-escena-host></div>' +
         '<div class="pausa__ui">' +
           '<div class="pausa__hora u-num" data-hora>--:--</div>' +
-          '<div class="pausa__lugar" data-lugar>Buscando ubicación…</div>' +
+          '<div class="pausa__lugar" data-lugar>' + esc(FALLBACK.label) + '</div>' +
           '<div class="pausa__clima" data-clima></div>' +
-          '<div class="pausa__fase" data-fase>Calculando la fase de hoy…</div>' +
+          '<div class="pausa__fase" data-fase></div>' +
         '</div>' +
         '<div class="pausa__tools">' +
-          '<div class="seg" data-sel>' +
-            [['luna','Luna'],['planeta','Planeta'],['estrellas','Estrellas']].map(function (o) {
-              return '<button class="seg__b' + (escena === o[0] ? ' is-on' : '') + '" data-e="' + o[0] + '">' + o[1] + '</button>';
-            }).join('') +
-          '</div>' +
           '<button class="icon-btn" data-full aria-label="Pantalla completa">' + SL.icon('metas') + '</button>' +
           '<button class="icon-btn" data-salir aria-label="Salir del Modo Pausa">' + SL.icon('x') + '</button>' +
         '</div>' +
@@ -57,47 +49,24 @@
     var horaEl = SL.$('[data-hora]', root);
     function tick() {
       var d = new Date();
-      horaEl.textContent = d.getHours() + ':' + SL.date.pad(d.getMinutes());
+      horaEl.textContent = SL.date.pad(d.getHours()) + ':' + SL.date.pad(d.getMinutes());
     }
     tick();
     clearInterval(clockTimer);
     clockTimer = setInterval(tick, 1000);
 
-    /* — la escena arranca ya mismo — */
-    var faseEl = SL.$('[data-fase]', root);
-    var lugarEl = SL.$('[data-lugar]', root);
-    lugarEl.textContent = FALLBACK.label;
-
-    if (escena === 'estrellas') {
-      faseEl.textContent = '';
-      campoEstrellas(SL.$('[data-sky]', root), 460);
-    } else if (escena === 'planeta') {
-      faseEl.textContent = 'Saturno · escena decorativa';
-      campoEstrellas(SL.$('[data-sky]', root), 150);
-      planeta(SL.$('[data-escena-host]', root));
-    } else {
-      campoEstrellas(SL.$('[data-sky]', root), 150);
-      luna(SL.$('[data-escena-host]', root), faseEl, FALLBACK);
-    }
+    luna(SL.$('[data-escena-host]', root), SL.$('[data-fase]', root), FALLBACK);
 
     /* La ubicación real llega cuando llega: recién ahí se recalcula la
        orientación de la Luna, sin que nadie haya esperado nada. */
-    if (escena === 'luna') {
-      ubicacionReal(function (loc) {
-        lugarEl.textContent = loc.label;
-        if (reubicar) reubicar(loc);
-      });
-    }
+    var lugarEl = SL.$('[data-lugar]', root);
+    ubicacionReal(function (loc) {
+      lugarEl.textContent = loc.label;
+      if (reubicar) reubicar(loc);
+    });
 
-    /* — clima — */
     clima(SL.$('[data-clima]', root));
 
-    /* — acciones — */
-    SL.$('[data-sel]', root).addEventListener('click', function (e) {
-      var b = e.target.closest('[data-e]'); if (!b) return;
-      derribar();
-      SL.store.update(function (st) { st.settings.pauseScene = b.dataset.e; });
-    });
     SL.$('[data-salir]', root).addEventListener('click', function () { SL.go('inicio'); });
     SL.$('[data-full]', root).addEventListener('click', function () {
       if (!document.fullscreenElement) (host.requestFullscreen || function () {}).call(host);
@@ -172,27 +141,23 @@
         obs = A.observer(nueva.lat, nueva.lon, 20);
         refrescar();
       };
-      scene = window.LunaScene(host, {});
+      scene = window.LunaScene(host, { transparent: true });
       if (!scene) throw new Error('sin WebGL');
 
       acomodar();
       window.addEventListener('resize', acomodar);
 
-      /* El encuadre: centerFx/centerFy corren el centro óptico en fracciones
-         de la semipantalla desde el centro (0 = centrada). Positivo en Y sube
-         la Luna, negativo en X la corre a la izquierda. */
+      /* El encuadre. centerFx/centerFy corren el centro óptico en fracciones
+         de la semipantalla desde el centro; 0 es centrada, negativo en X la
+         lleva a la izquierda, positivo en Y la sube.
+
+         El contenedor ya ocupa sólo la mitad izquierda en horizontal, así que
+         acá sólo hace falta centrarla adentro y elegir cuánto la llena. */
       function acomodar() {
         if (!scene) return;
-        var vertical = window.innerHeight >= window.innerWidth;
-        if (vertical) {
-          // De pie: la Luna arriba, centrada, y la hora ocupa la mitad de abajo.
-          scene.setViewCenter(0, 0.30);
-          scene.setFill(0.30);
-        } else {
-          // De costado: la Luna a la izquierda y la hora al lado.
-          scene.setViewCenter(-0.44, 0.04);
-          scene.setFill(0.46);
-        }
+        var angosto = window.innerWidth < 720;
+        scene.setViewCenter(0, 0);
+        scene.setFill(angosto ? 0.62 : 0.74);
         scene.resize();
       }
 
@@ -266,59 +231,8 @@
     return { frac: frac, illum: illum, age: age, name: names[Math.floor(((frac + 1 / 16) % 1) * 8)] };
   }
 
-  /* ————————————————— planeta (escena alternativa) ————————————————— */
-  function planeta(host) {
-    host.innerHTML = '<canvas class="pausa__moon2d" data-p></canvas>';
-    var canvas = SL.$('[data-p]', host);
-    var x = canvas.getContext('2d');
-    var tex = texturaPlaneta();
-    var rot = 0, last = performance.now();
-    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    function frame(now) {
-      var dt = Math.min(64, now - last); last = now;
-      if (!reduce) rot = (rot + dt * 0.0018) % tex.width;
-
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      var r = canvas.getBoundingClientRect();
-      if (canvas.width !== Math.round(r.width * dpr)) {
-        canvas.width = Math.max(1, r.width * dpr);
-        canvas.height = Math.max(1, r.height * dpr);
-      }
-      var W = canvas.width, H = canvas.height;
-      var R = Math.min(W, H) * 0.3, cx = W / 2, cy = H * 0.36;
-      x.clearRect(0, 0, W, H);
-
-      x.save();
-      x.beginPath(); x.arc(cx, cy, R, 0, 6.3); x.clip();
-      // La textura se desplaza para simular la rotación del planeta.
-      x.drawImage(tex, -rot, 0, tex.width, tex.height, cx - R, cy - R, R * 2, R * 2);
-      x.drawImage(tex, tex.width - rot, 0, tex.width, tex.height, cx - R, cy - R, R * 2, R * 2);
-      // Sombreado esférico
-      var g = x.createRadialGradient(cx - R * .35, cy - R * .35, R * .1, cx, cy, R * 1.05);
-      g.addColorStop(0, 'rgba(255,240,210,.16)');
-      g.addColorStop(.55, 'rgba(0,0,0,0)');
-      g.addColorStop(1, 'rgba(0,0,0,.85)');
-      x.fillStyle = g; x.fillRect(cx - R, cy - R, R * 2, R * 2);
-      x.restore();
-
-      // Anillos
-      x.save();
-      x.translate(cx, cy); x.scale(1, .26); x.rotate(-.18);
-      [1.9, 1.68, 1.44].forEach(function (k, i) {
-        x.beginPath(); x.arc(0, 0, R * k, 0, 6.3);
-        x.strokeStyle = 'rgba(226,206,168,' + (.34 - i * .07) + ')';
-        x.lineWidth = R * (.15 - i * .03);
-        x.stroke();
-      });
-      x.restore();
-
-      raf = requestAnimationFrame(frame);
-    }
-    raf = requestAnimationFrame(frame);
-  }
-
   /* ————————————————— texturas de respaldo ————————————————— */
+  /* Sólo la usa el respaldo 2D, cuando no hay WebGL. */
   function texturaLunar() {
     var W = 1024, H = 512;
     var c = document.createElement('canvas');
@@ -347,31 +261,6 @@
       x.fillStyle = gg;
       x.beginPath(); x.arc(cx, cy, r, 0, 6.3); x.fill();
     }
-    return c;
-  }
-
-  function texturaPlaneta() {
-    var W = 512, H = 512;
-    var c = document.createElement('canvas');
-    c.width = W; c.height = H;
-    var x = c.getContext('2d');
-    var seed = 99;
-    function rnd() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
-    for (var y = 0; y < H; y++) {
-      var band = Math.sin(y / H * Math.PI * 9) * .5 + .5;
-      var wob = Math.sin(y / H * Math.PI * 23 + 1.4) * .12;
-      var l = 152 + band * 60 + wob * 58;
-      x.fillStyle = 'rgb(' + Math.round(l) + ',' + Math.round(l * .84) + ',' + Math.round(l * .62) + ')';
-      x.fillRect(0, y, W, 1);
-    }
-    for (var q = 0; q < 70; q++) {
-      x.globalAlpha = .15;
-      x.fillStyle = rnd() > .5 ? '#e6d3b0' : '#8a6a48';
-      x.beginPath();
-      x.ellipse(rnd() * W, rnd() * H, 8 + rnd() * 40, (8 + rnd() * 40) * .4, 0, 0, 6.3);
-      x.fill();
-    }
-    x.globalAlpha = 1;
     return c;
   }
 

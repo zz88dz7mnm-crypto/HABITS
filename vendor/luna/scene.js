@@ -68,9 +68,28 @@
     'uniform vec3 uSun; uniform vec3 uEarth;',
     'uniform float uBump; uniform float uExposure; uniform float uEarthshine;',
     'uniform float uOpposition; uniform float uLambert; uniform float uDetail;',
+    'uniform float uMicro; uniform float uMicroScale;',
     'varying vec2 vUv;',
     'varying vec3 vN; varying vec3 vT; varying vec3 vB; varying vec3 vWorld; varying vec3 vBody;',
     'float hgt(vec2 p) { return texture2D(uRelief, p).r; }',
+    // — micro-relieve procedural —
+    'float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }',
+    'float vnoise(vec2 p) {',
+    '  vec2 i = floor(p), f = fract(p);',
+    '  f = f * f * (3.0 - 2.0 * f);',
+    '  return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x),',
+    '             mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y);',
+    '}',
+    // Ridged: los valles quedan marcados como pozos, que es la forma de un
+    // campo de cráteres chicos, no la de una duna.
+    'float micro(vec2 p) {',
+    '  float n = 0.0, a = 0.5;',
+    '  for (int k = 0; k < 3; k++) {',
+    '    n += a * (1.0 - abs(vnoise(p) * 2.0 - 1.0));',
+    '    p *= 2.17; a *= 0.5;',
+    '  }',
+    '  return n;',
+    '}',
     'void main() {',
     '  float hL = hgt(vUv - vec2(uTexel.x, 0.0)), hR = hgt(vUv + vec2(uTexel.x, 0.0));',
     '  float hD = hgt(vUv - vec2(0.0, uTexel.y)), hU = hgt(vUv + vec2(0.0, uTexel.y));',
@@ -78,6 +97,16 @@
     '  float dE = (hR - hL) / (2.0 * uTexel.x * cosLat);',
     '  float dN = (hU - hD) / (2.0 * uTexel.y);',
     '  vec3 N = normalize(vN - uBump * (dE * vT + dN * vB));',
+    // El grano se calcula sobre la misma base de este/norte que el bump del
+    // mapa, así respeta la deformación de la proyección cerca de los polos.
+    '  if (uMicro > 0.0) {',
+    '    vec2 mp = vUv * uMicroScale;',
+    '    vec2 ex = vec2(uTexel.x * uMicroScale, 0.0);',
+    '    vec2 ey = vec2(0.0, uTexel.y * uMicroScale);',
+    '    float mE2 = (micro(mp + ex) - micro(mp - ex)) / (2.0 * uTexel.x * cosLat);',
+    '    float mN2 = (micro(mp + ey) - micro(mp - ey)) / (2.0 * uTexel.y);',
+    '    N = normalize(N - uMicro * (mE2 * vT + mN2 * vB));',
+    '  }',
     '  vec3 V = normalize(cameraPosition - vWorld);',
     '  float mu0 = max(dot(N, uSun), 0.0);',
     '  float mu  = max(dot(N, V), 0.0);',
@@ -195,11 +224,18 @@
     var clock = { t0: performance.now() };
 
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        // Transparente cuando la escena comparte fondo con la página: si el
+        // canvas pinta su propio negro, se ve la costura contra el degradé.
+        alpha: !!opts.transparent,
+        powerPreference: 'high-performance'
+      });
     } catch (e) { return null; }
     if (!renderer) return null;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(0x04060c, 1);
+    if (opts.transparent) renderer.setClearColor(0x000000, 0);
+    else renderer.setClearColor(0x04060c, 1);
     container.appendChild(renderer.domElement);
 
     scene = new THREE.Scene();
@@ -214,7 +250,7 @@
     uniforms = {
       uColor: { value: texColor },
       uRelief: { value: texRelief },
-      uTexel: { value: new THREE.Vector2(1 / 1024, 1 / 512) },
+      uTexel: { value: new THREE.Vector2(1 / 2048, 1 / 1024) },
       uSun: { value: new THREE.Vector3(1, 0, 0) },
       uEarth: { value: new THREE.Vector3(0, 0, 1) },
       uBump: { value: 0.0021 },
@@ -222,7 +258,11 @@
       uEarthshine: { value: 0.02 },
       uOpposition: { value: 0.30 },
       uLambert: { value: 0.22 },
-      uDetail: { value: 0.30 }
+      uDetail: { value: 0.30 },
+      /* Fuerza y frecuencia del grano de regolito. La fuerza es deliberadamente
+         chica: tiene que leerse como textura de superficie, no como ruido. */
+      uMicro: { value: 0.00055 },
+      uMicroScale: { value: 620.0 }
     };
 
     moon = new THREE.Mesh(
@@ -232,7 +272,7 @@
     moon.matrixAutoUpdate = true;
     scene.add(moon);
 
-    stars = starField(15000);
+    stars = starField(opts.stars === undefined ? 15000 : opts.stars);
     scene.add(stars);
 
     /* El halo va detras del disco: como es transparente three.js lo dibuja
