@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Armado de la app
+   Zenit · Armado de la app
    Shell, ruteo y arranque.
    ============================================================ */
 (function (SL) {
@@ -28,10 +28,12 @@
   var current = 'inicio';
   var prevView = null;
 
+  /* La marca: el punto del cenit y el pico al que se llega. */
   var LOGO = '<svg viewBox="0 0 512 512" aria-hidden="true">' +
-    '<defs><linearGradient id="slg" x1="0" y1="0" x2="1" y2="1">' +
+    '<defs><linearGradient id="zng" x1="0" y1="1" x2="1" y2="0">' +
     '<stop offset="0" stop-color="#FF3B3B"/><stop offset="1" stop-color="#FF9D4B"/></linearGradient></defs>' +
-    '<path d="M318 96 L196 96 L128 232 L214 232 L152 416 L360 214 L262 214 Z" fill="url(#slg)"/></svg>';
+    '<circle cx="256" cy="118" r="29" fill="url(#zng)"/>' +
+    '<path d="M256 176 L420 394 L344 394 L256 277 L168 394 L92 394 Z" fill="url(#zng)"/></svg>';
 
   /* ————————————————— tema ————————————————— */
   SL.applyTheme = function () {
@@ -53,7 +55,7 @@
       '<div class="scrim" data-scrim></div>' +
       '<div class="shell">' +
         '<aside class="side" data-side>' +
-          '<div class="side__brand">' + LOGO + '<span>Stark<span class="u-grad-text">Lab</span></span></div>' +
+          '<div class="side__brand">' + LOGO + '<span>Zenit</span></div>' +
           '<nav class="nav" data-nav>' +
             NAV.map(function (n) {
               if (n.g) return '<div class="side__group"><div class="u-eyebrow side__label">' + esc(n.g) + '</div></div>';
@@ -69,7 +71,7 @@
         '<div class="main">' +
           '<header class="top">' +
             '<button class="icon-btn" data-menu aria-label="Abrir menú" style="display:none">' + SL.icon('menu') + '</button>' +
-            '<div class="top__crumb">StarkLab / <b data-crumb>Inicio</b></div>' +
+            '<div class="top__crumb">Zenit / <b data-crumb>Inicio</b></div>' +
             '<div class="top__spacer"></div>' +
             '<button class="icon-btn" data-tema-rapido aria-label="Cambiar tema">' + SL.icon('sol') + '</button>' +
             '<button class="icon-btn" data-r="pausa" aria-label="Modo Pausa">' + SL.icon('pausa') + '</button>' +
@@ -159,7 +161,7 @@
     var nav = NAV.filter(function (n) { return n.id === current; })[0];
     var crumb = SL.$('[data-crumb]');
     if (crumb) crumb.textContent = nav ? nav.t : 'Modo Pausa';
-    document.title = (nav ? nav.t + ' · ' : '') + 'StarkLab';
+    document.title = (nav ? nav.t + ' · ' : '') + 'Zenit';
 
     badges(s);
   };
@@ -269,7 +271,7 @@
   function onboarding() {
     var e = SL.notify.estado();
     SL.modal({
-      title: 'Bienvenido a StarkLab',
+      title: 'Bienvenido a Zenit',
       body: '<div style="display:grid;gap:var(--s4);font-size:var(--fs-sm);line-height:1.65;color:var(--text-2)">' +
         '<p>Todo lo que cargues vive <b style="color:var(--text)">en este dispositivo</b>. No hay cuenta, no hay servidor, ' +
         'y funciona sin señal. Podés exportarlo o borrarlo entero cuando quieras.</p>' +

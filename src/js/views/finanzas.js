@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Finanzas — sistema de frascos
+   Zenit · Finanzas — sistema de frascos
 
    La idea que sostiene todo: el saldo de la cuenta NO dice cuánto
    podés gastar. Lo dice la plata que todavía no tiene un trabajo

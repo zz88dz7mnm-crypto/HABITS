@@ -1,8 +1,8 @@
-/* StarkLab Web — service worker
+/* Zenit — service worker
    Estrategia: app-shell cacheado (cache-first con revalidación en segundo plano)
    para que la PWA abra offline; red-primero para todo lo externo. */
 
-const VERSION = 'starklab-v1';
+const VERSION = 'zenit-v1';
 const SHELL = [
   './',
   './index.html',
@@ -71,11 +71,11 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('message', (e) => {
   const d = e.data || {};
   if (d.type === 'notify') {
-    self.registration.showNotification(d.title || 'StarkLab', {
+    self.registration.showNotification(d.title || 'Zenit', {
       body: d.body || '',
       icon: './icons/icon-192.png',
       badge: './icons/icon-192.png',
-      tag: d.tag || 'starklab',
+      tag: d.tag || 'zenit',
       renotify: true,
       silent: !!d.silent,
       data: { url: d.url || './' }
@@ -85,7 +85,7 @@ self.addEventListener('message', (e) => {
 });
 
 self.addEventListener('push', (e) => {
-  let p = { title: 'StarkLab', body: '' };
+  let p = { title: 'Zenit', body: '' };
   try { p = e.data ? e.data.json() : p; } catch (_) { p.body = e.data ? e.data.text() : ''; }
   e.waitUntil(self.registration.showNotification(p.title, {
     body: p.body,

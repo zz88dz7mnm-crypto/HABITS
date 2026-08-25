@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Notificaciones
+   Zenit · Notificaciones
    Recordatorios locales programados por la app y disparados por
    el service worker, así llegan aunque la pestaña esté cerrada.
 
@@ -48,7 +48,7 @@
     if (!granted()) return;
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
-        type: 'notify', title: title, body: body, tag: tag || 'starklab'
+        type: 'notify', title: title, body: body, tag: tag || 'zenit'
       });
     } else {
       try { new Notification(title, { body: body, icon: 'icons/icon-192.png', tag: tag }); } catch (e) {}
@@ -119,7 +119,7 @@
     var f = SL.compute.finance(s, t.getFullYear(), t.getMonth());
     var mk = D.monthKey(t);
     var seen = {};
-    try { seen = JSON.parse(localStorage.getItem('starklab:budgetwarn') || '{}'); } catch (e) {}
+    try { seen = JSON.parse(localStorage.getItem('zenit:budgetwarn') || '{}'); } catch (e) {}
 
     f.cats.forEach(function (c) {
       if (!c.budget) return;
@@ -132,7 +132,7 @@
         c.name + ': ' + SL.fmt.money(c.value, s.settings.currency) + ' de ' +
         SL.fmt.money(c.budget, s.settings.currency) + '.', 'presu-' + c.id);
     });
-    try { localStorage.setItem('starklab:budgetwarn', JSON.stringify(seen)); } catch (e) {}
+    try { localStorage.setItem('zenit:budgetwarn', JSON.stringify(seen)); } catch (e) {}
   }
 
   SL.notify = {

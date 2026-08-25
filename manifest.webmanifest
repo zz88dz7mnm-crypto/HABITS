@@ -1,6 +1,6 @@
 {
-  "name": "StarkLab — Central de Comando Personal",
-  "short_name": "StarkLab",
+  "name": "Zenit — Central de Comando Personal",
+  "short_name": "Zenit",
   "description": "Hábitos, finanzas, entrenamiento, diario y modo pausa. Todo en una web app instalable que funciona offline.",
   "start_url": "./?src=pwa",
   "scope": "./",

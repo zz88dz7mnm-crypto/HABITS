@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Empaquetado para Artifact
+   Zenit · Empaquetado para Artifact
    Igual que build.mjs, pero devuelve sólo el contenido del body:
    el host pone el <!doctype>, el <html>, el <head> y el <body>.
    Uso: node build-artifact.mjs
@@ -33,13 +33,13 @@ const jsLimpio = js.replace(
   "      /* sin service worker en este contexto */"
 );
 
-const LOGO = '<svg viewBox="0 0 512 512" aria-label="Cargando StarkLab">' +
+const LOGO = '<svg viewBox="0 0 512 512" aria-label="Cargando Zenit">' +
   '<defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">' +
   '<stop offset="0" stop-color="#FF3B3B"/><stop offset="1" stop-color="#FF9D4B"/>' +
   '</linearGradient></defs>' +
   '<path d="M318 96 L196 96 L128 232 L214 232 L152 416 L360 214 L262 214 Z" fill="url(#bg1)"/></svg>';
 
-const html = `<title>StarkLab</title>
+const html = `<title>Zenit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -84,5 +84,5 @@ ${luna}
 `;
 
 mkdirSync(resolve(raiz, 'dist'), { recursive: true });
-writeFileSync(resolve(raiz, 'dist/starklab-artifact.html'), html);
-console.log('dist/starklab-artifact.html · ' + (html.length / 1048576).toFixed(2) + ' MB');
+writeFileSync(resolve(raiz, 'dist/zenit-artifact.html'), html);
+console.log('dist/zenit-artifact.html · ' + (html.length / 1048576).toFixed(2) + ' MB');

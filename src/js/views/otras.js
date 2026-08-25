@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Metas, Tareas, Agenda, Enfoque y Logros
+   Zenit · Metas, Tareas, Agenda, Enfoque y Logros
    ============================================================ */
 (function (SL) {
   'use strict';

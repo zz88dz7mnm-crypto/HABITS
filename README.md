@@ -1,10 +1,13 @@
-# StarkLab Web
+# Zenit
 
-**Central de Comando Personal.** Hábitos con grilla y gráficos, finanzas, entrenamiento,
-diario y un modo pausa nocturno. Web app instalable (PWA) que funciona offline,
-sin apps de tienda.
+**Central de Comando Personal.** Hábitos con grilla y gráficos, finanzas por frascos,
+entrenamiento, journaling y un modo pausa con la Luna real de hoy. Web app instalable
+(PWA) que funciona offline, sin apps de tienda.
 
-> Implementación del documento de producto *StarkLab Web · Versión Realista v3*.
+El nombre es el punto más alto del cielo, el que cae justo sobre tu cabeza. Es también
+el que usa el Modo Pausa para orientar la Luna como se ve desde donde estás.
+
+La app arranca **vacía**: los números que ves son tuyos desde el primer día.
 
 ## Estado
 
@@ -13,14 +16,14 @@ sin apps de tienda.
 | Shell + sistema visual + PWA | ✅ |
 | Inicio (resumen del día) | ✅ |
 | Hábitos (grilla, gráficos, rachas, notas, drag & drop) | ✅ |
-| Finanzas (tarjetas, torta, transacciones, presupuestos, importar CSV) | ✅ |
+| Finanzas por frascos (asignar, gastar, romper, reponer, reconciliar) | ✅ |
 | Entrenamiento (mapa muscular, rutina semanal, volumen) | ✅ |
-| Diario (ánimo, cruce con hábitos, correlación) | ✅ |
-| Progreso (radar, mapa de calor anual, mes contra mes) | ✅ |
-| Metas · Tareas · Agenda · Enfoque · Logros · Perfil | ✅ |
-| Modo Pausa (Luna real en WebGL, hora, clima) | ✅ |
+| Journaling (ánimo, cruce con hábitos, correlación) | ✅ |
+| Progreso (radar de 6 áreas, mes contra mes, hábito por hábito) | ✅ |
+| Tareas · Agenda · Enfoque | ✅ |
+| Modo Pausa (Luna real en WebGL con efemérides, hora, clima) | ✅ |
 | Configuración (tema, notificaciones, presupuestos, export/borrado) | ✅ |
-| Familia (compartir entre personas) | ⛔ Necesita servidor — ver nota en la app |
+| Compartir entre personas | ⛔ Necesita servidor — ver la nota en Configuración |
 
 ## Cómo correrlo
 
@@ -37,7 +40,7 @@ python3 -m http.server 8080
 ## Un solo archivo
 
 ```bash
-node build.mjs      # → dist/starklab.html
+node build.mjs      # → dist/zenit.html
 ```
 
 Mete adentro el CSS, los scripts y el motor lunar, y produce un HTML de ~1,6 MB
@@ -88,6 +91,11 @@ Están escritos a mano en SVG, sin librerías. Las reglas que siguen todos:
 - **Una sola escala por gráfico.** Nunca dos ejes Y — es la forma más fácil de
   mentir con un gráfico. En el cruce ánimo/hábitos, el ánimo (1–5) se lleva a
   porcentaje para que ambas series compartan la misma escala.
+- **Tres referencias de grilla, no cinco.** Con más, la grilla compite con el dato.
+- **Las series se encienden a mano.** Superponer ocho hábitos de una vez vuelve el
+  gráfico ilegible: la comparación se arma de a una serie.
+- **Sin datos no es cero.** Un mes en el que el hábito todavía no existía se marca
+  como sin medir, no como 0% de cumplimiento.
 - **La grilla y los ejes son recesivos**; el dato es lo único brillante.
 - **El texto usa tokens de texto, nunca el color de la serie.** El color lo
   lleva la marca al lado, no el número.

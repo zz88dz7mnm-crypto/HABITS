@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Journaling
+   Zenit · Journaling
    Una entrada por día, ánimo en cinco caras y etiquetas de qué
    lo influyó. Con el tiempo se puede cruzar con los hábitos.
    ============================================================ */

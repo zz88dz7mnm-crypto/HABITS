@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Progreso
+   Zenit · Progreso
    El radar de las seis áreas, el año entero en un mapa de calor
    y la comparación mes contra mes.
    ============================================================ */
@@ -81,32 +81,21 @@
         '</div>' +
       '</div>' +
 
-      '<div class="grid grid--3">' +
-        rachasHTML(s, habits) +
+      '<div class="grid grid--main">' +
         '<div class="card">' +
           '<div class="card__head"><div>' +
             '<div class="card__title">Mes contra mes</div>' +
             '<div class="card__sub">Cumplimiento promedio de los últimos 6 meses</div>' +
           '</div></div>' +
-          '<div data-meses style="height:190px"></div>' +
+          '<div data-meses style="height:200px"></div>' +
         '</div>' +
 
-        '<div class="card">' +
-          '<div class="card__head"><div>' +
-            '<div class="card__title">Qué te está costando</div>' +
-            '<div class="card__sub">Últimos 30 días, de mejor a peor</div>' +
+        '<div class="card card--flush">' +
+          '<div class="card__head card__head--inset"><div>' +
+            '<div class="card__title">Hábito por hábito</div>' +
+            '<div class="card__sub">Racha actual y cumplimiento de los últimos 30 días</div>' +
           '</div></div>' +
-          '<div class="legend legend--rows">' +
-            (rank.length ? rank.map(function (o) {
-              return '<span class="legend__i" style="--cc:var(--c-' + o.h.color + ')">' +
-                '<span class="legend__sw"></span>' +
-                '<span class="legend__name">' + o.h.emoji + ' ' + esc(o.h.name) + '</span>' +
-                '<span style="flex:0 0 76px;height:5px;border-radius:99px;background:var(--border-soft);overflow:hidden">' +
-                  '<span style="display:block;height:100%;border-radius:99px;background:var(--cc);width:' +
-                    Math.round(o.rate * 100) + '%"></span></span>' +
-                '<b style="flex:0 0 42px;text-align:right">' + Math.round(o.rate * 100) + '%</b></span>';
-            }).join('') : '<div class="empty__s">Sin hábitos activos.</div>') +
-          '</div>' +
+          tablaHabitos(s, habits) +
         '</div>' +
       '</div>';
 
@@ -114,37 +103,39 @@
     SL.charts.bars(SL.$('[data-meses]', root), { height: 190, data: meses });
   };
 
-  /* Las rachas: días consecutivos cumplidos ahora mismo, ordenadas de
-     mayor a menor. Vivían en el Inicio, pero son una estadística: acá
-     tienen contexto y allá eran ruido. */
-  function rachasHTML(s, habits) {
-    var orden = habits.map(function (h) {
-      return { h: h, n: C.streak(s, h), best: C.bestStreak(s, h) };
-    }).sort(function (a, b) { return b.n - a.n; });
-    var max = Math.max(1, orden[0] ? orden[0].n : 1);
+  /* Una sola tabla por hábito. Antes eran dos tarjetas —rachas por un
+     lado y cumplimiento por otro— que decían casi lo mismo con dos
+     gráficos distintos: juntas se leen de un vistazo y ocupan la mitad. */
+  function tablaHabitos(s, habits) {
+    if (!habits.length) {
+      return '<div class="empty"><p class="empty__s">Todavía no creaste ningún hábito.</p></div>';
+    }
+    var filas = habits.map(function (h) {
+      var n = 0, done = 0;
+      for (var j = 0; j < 30; j++) {
+        var d = D.addDays(D.today(), -j);
+        if (!C.due(h, d)) continue;
+        n++; if (C.isDone(s, h.id, D.iso(d))) done++;
+      }
+      return { h: h, racha: C.streak(s, h), mejor: C.bestStreak(s, h), rate: n ? done / n : 0 };
+    }).sort(function (a, b) { return b.rate - a.rate; });
 
-    return '<div class="card">' +
-      '<div class="card__head"><div>' +
-        '<div class="card__title">Rachas</div>' +
-        '<div class="card__sub">Días seguidos cumpliendo, ahora mismo</div>' +
-      '</div></div>' +
-      (orden.length
-        ? '<div class="legend legend--rows">' + orden.map(function (o) {
-            return '<span class="legend__i" style="--cc:var(--c-' + o.h.color + ')">' +
-              '<span class="legend__sw"></span>' +
-              '<span class="legend__name">' + o.h.emoji + ' ' + esc(o.h.name) + '</span>' +
-              '<span class="legend__bar"><span style="width:' + Math.round(o.n / max * 100) + '%"></span></span>' +
-              '<b>' + o.n + 'd</b></span>';
-          }).join('') + '</div>'
-        : '<p class="card__sub">Sin hábitos todavía.</p>') +
-    '</div>';
+    return '<div class="tabla-h">' + filas.map(function (f) {
+      return '<div class="tabla-h__r" style="--cc:var(--c-' + f.h.color + ')">' +
+        '<span class="tabla-h__n">' + f.h.emoji + ' ' + esc(f.h.name) + '</span>' +
+        '<span class="tabla-h__racha" title="Racha actual · mejor: ' + f.mejor + '">' +
+          (f.racha ? SL.icon('fuego') + f.racha : '—') + '</span>' +
+        '<span class="tabla-h__bar"><span style="width:' + Math.round(f.rate * 100) + '%"></span></span>' +
+        '<b class="tabla-h__v">' + Math.round(f.rate * 100) + '%</b>' +
+      '</div>';
+    }).join('') + '</div>';
   }
 
   var FUENTE = {
     fisico:        'Hábitos de cuerpo + días de entrenamiento efectivamente hechos',
-    mental:        'Ánimo promedio registrado en el diario',
-    financiero:    'Cuánto margen quedó entre lo gastado y los presupuestos',
-    productividad: 'Tareas cerradas + avance de las metas',
+    mental:        'Ánimo promedio registrado en el journaling',
+    financiero:    'Cuánta plata tiene un trabajo asignado y cuánto margen queda en los frascos',
+    productividad: 'Tareas cerradas de los últimos 30 días',
     disciplina:    'Cumplimiento global de todos los hábitos',
     enfoque:       'Hábitos de concentración + minutos de foco registrados'
   };

@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Cálculos derivados
+   Zenit · Cálculos derivados
    Todo lo que los gráficos y las tarjetas necesitan saber, en un
    solo lugar: cumplimiento, rachas, agregados de plata y el
    puntaje de las seis áreas del radar.
@@ -15,8 +15,13 @@
   }
 
   /* ¿A este hábito le toca este día? Un hábito de lunes/miércoles no
-     cuenta como incumplido un domingo — si no, el % castiga sin razón. */
+     cuenta como incumplido un domingo — si no, el % castiga sin razón.
+
+     Tampoco cuenta antes de existir: un hábito creado en junio no estuvo
+     incumplido todo mayo. Sin esta condición, cada hábito nuevo arrastra
+     hacia abajo todos los meses anteriores del gráfico. */
   function due(h, date) {
+    if (h.createdAt && D.iso(date) < h.createdAt) return false;
     var wd = D.dow(date);
     if (h.freq === 'daily') return true;
     return h.days.indexOf(wd) !== -1;
@@ -110,10 +115,13 @@
     return found;
   }
 
-  /* Promedio del mes, ignorando los días sin nada agendado y el futuro. */
+  /* Promedio del mes, ignorando los días sin nada agendado y el futuro.
+     Devuelve null si no hay un solo día con datos: un mes en el que no
+     existía ningún hábito no es "0% de cumplimiento", es un mes sin
+     medir, y dibujarlo como cero miente. */
   function monthRate(s, year, month) {
     var ser = monthSeries(s, year, month).filter(function (p) { return p.rate !== null; });
-    if (!ser.length) return 0;
+    if (!ser.length) return null;
     return ser.reduce(function (a, p) { return a + p.rate; }, 0) / ser.length;
   }
 

@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Entrenamiento
+   Zenit · Entrenamiento
    Rutina de la semana + mapa muscular: qué se trabaja hoy,
    marcado sobre el cuerpo en vez de escrito en una lista.
    ============================================================ */
@@ -398,7 +398,7 @@
     if (!pintados) {
       add('text', {
         x: 100, y: 334, 'text-anchor': 'middle', fill: 'var(--text-3)',
-        'font-size': 9, 'font-family': 'var(--font)'
+        'font-size': 10, 'font-family': 'var(--font)'
       }).textContent = active.length ? 'Nada de este lado' : 'Día de descanso';
     }
 

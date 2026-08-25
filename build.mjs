@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Empaquetado en un solo archivo
+   Zenit · Empaquetado en un solo archivo
    Toma index.html y mete adentro el CSS, los scripts y el motor
    lunar, para producir un HTML que se abre solo, sin servidor.
    Uso: node build.mjs
@@ -47,7 +47,7 @@ const dataUri = 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64
 html = html.replace(/href="icons\/[^"]+"/g, 'href="' + dataUri + '"');
 
 mkdirSync(resolve(raiz, 'dist'), { recursive: true });
-writeFileSync(resolve(raiz, 'dist/starklab.html'), html);
+writeFileSync(resolve(raiz, 'dist/zenit.html'), html);
 
 const mb = (html.length / 1048576).toFixed(2);
-console.log('dist/starklab.html · ' + mb + ' MB');
+console.log('dist/zenit.html · ' + mb + ' MB');

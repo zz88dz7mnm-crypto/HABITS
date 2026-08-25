@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Modo Pausa
+   Zenit · Modo Pausa
    Pantalla nocturna: la Luna real del día, hora grande y clima.
    Pensada para dejar el teléfono apoyado de costado cargando.
 

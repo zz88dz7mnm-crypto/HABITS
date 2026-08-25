@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Hábitos
+   Zenit · Hábitos
    La grilla es el corazón del producto: una fila por hábito con
    su color fijo, una celda por día. Sin límite de cantidad.
    ============================================================ */
@@ -10,7 +10,7 @@
   var cursor = null;     // mes que se está mirando
   var compare = false;   // superponer el mes anterior
   var modo = 'total';    // 'total' = sólo el conjunto · 'habitos' = una línea por hábito
-  var activo = null;     // hábito destacado dentro del modo por hábito
+  var visibles = [];     // hábitos encendidos en el modo por hábito
   var semanaHabito = null; // qué hábito mira el gráfico semanal (null = todos)
 
   function monthLabel(d) { return SL.MESES[d.getMonth()] + ' ' + d.getFullYear(); }
@@ -21,7 +21,7 @@
 
     var y = cursor.getFullYear(), m = cursor.getMonth();
     var series = C.monthSeries(s, y, m);
-    var rate = C.monthRate(s, y, m);
+    var rate = C.monthRate(s, y, m);          // null si el mes no tiene un solo día medido
     var habits = C.activeHabits(s);
     var days = D.daysInMonth(y, m);
     var todayKey = D.iso(D.today());
@@ -29,7 +29,7 @@
     // Mes anterior, para el comparativo y el delta.
     var prev = new Date(y, m - 1, 1);
     var prevRate = C.monthRate(s, prev.getFullYear(), prev.getMonth());
-    var delta = rate - prevRate;
+    var delta = (rate === null || prevRate === null) ? null : rate - prevRate;
 
     root.innerHTML =
       '<div class="page-head">' +
@@ -64,23 +64,27 @@
             (modo === 'total'
               ? '<button class="btn btn--sm' + (compare ? ' btn--primary' : '') + '" data-comp>' +
                 'Comparar con ' + esc(SL.MESES[prev.getMonth()]) + '</button>'
-              : '') +
+              : visibles.length
+                ? '<button class="btn btn--sm btn--ghost" data-limpiar>Quitar todas</button>'
+                : '') +
             '<div style="text-align:right;margin-left:8px">' +
               '<div style="font-size:1.6rem;font-weight:800;letter-spacing:-.04em;line-height:1" class="u-grad-text">' +
-                Math.round(rate * 100) + '%</div>' +
+                (rate === null ? '—' : Math.round(rate * 100) + '%') + '</div>' +
               '<div class="card__sub">' + deltaHTML(delta) + '</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
         '<div data-chart-line style="height:280px"></div>' +
         (modo === 'habitos'
-          ? '<div class="chips" data-series>' +
-              '<button class="chip-s' + (activo === null ? ' is-on' : '') + '" data-h2="" style="--cc:var(--accent)">' +
-                '<i></i>Total</button>' +
-              habits.map(function (h) {
-                return '<button class="chip-s' + (activo === h.id ? ' is-on' : '') + '" data-h2="' + h.id + '" ' +
-                  'style="--cc:var(--c-' + h.color + ')"><i></i>' + h.emoji + ' ' + esc(h.name) + '</button>';
-              }).join('') +
+          ? '<div class="chips-wrap">' +
+              '<span class="chips-l">' + (visibles.length ? 'Encendidos' : 'Elegí cuáles superponer') + '</span>' +
+              '<div class="chips" data-series>' +
+                habits.map(function (h) {
+                  return '<button class="chip-s' + (visibles.indexOf(h.id) !== -1 ? ' is-on' : '') +
+                    '" data-h2="' + h.id + '" style="--cc:var(--c-' + h.color + ')">' +
+                    '<i></i>' + h.emoji + ' ' + esc(h.name) + '</button>';
+                }).join('') +
+              '</div>' +
             '</div>'
           : compare
             ? '<div class="legend"><span class="legend__i"><span class="legend__sw" style="--cc:var(--accent)"></span>' +
@@ -141,21 +145,22 @@
         tipTitle: function (p) { return p.day + ' de ' + SL.MESES[m]; }
       });
     } else {
-      /* Todas las series en media móvil de 7 días, para que la del total y
-         la de cada hábito estén en la misma escala y se puedan comparar. */
-      var extras = habits.map(function (h) {
-        return {
-          key: h.id, label: h.name,
-          color: 'var(--c-' + h.color + ')',
-          data: C.rolling(s, h, y, m, 7),
-          activa: activo === h.id
-        };
-      });
+      /* Sólo se dibujan los hábitos que el usuario encendió. Superponer
+         los ocho de una es lo que volvía ilegible el gráfico: acá la
+         comparación se arma de a una serie, que es como se lee. */
+      var extras = habits.filter(function (h) { return visibles.indexOf(h.id) !== -1; })
+        .map(function (h) {
+          return {
+            key: h.id, label: h.name,
+            color: 'var(--c-' + h.color + ')',
+            data: C.rolling(s, h, y, m, 7),
+            activa: true
+          };
+        });
       SL.charts.line(SL.$('[data-chart-line]', root), {
         data: C.rolling(s, null, y, m, 7),
         series: extras,
-        hayActiva: activo !== null,
-        atenuarPrincipal: activo !== null,
+        atenuarPrincipal: extras.length > 0,
         height: 280,
         tipTitle: function (p) { return 'Hasta el ' + p.day + ' de ' + SL.MESES[m]; },
         tipNota: 'media de 7 días'
@@ -163,10 +168,13 @@
 
       SL.$('[data-series]', root).addEventListener('click', function (e) {
         var b = e.target.closest('[data-h2]'); if (!b) return;
-        var id = b.dataset.h2 || null;
-        activo = (activo === id) ? null : id;
+        var id = b.dataset.h2;
+        var k = visibles.indexOf(id);
+        if (k === -1) visibles.push(id); else visibles.splice(k, 1);
         SL.render();
       });
+      var limpiar = SL.$('[data-limpiar]', root);
+      if (limpiar) limpiar.addEventListener('click', function () { visibles = []; SL.render(); });
     }
 
     /* ————— la grilla ————— */
@@ -247,13 +255,14 @@
     if (comp) comp.addEventListener('click', function () { compare = !compare; SL.render(); });
     SL.$('[data-modo]', root).addEventListener('click', function (e) {
       var b = e.target.closest('[data-mo]'); if (!b) return;
-      modo = b.dataset.mo; activo = null; SL.render();
+      modo = b.dataset.mo; SL.render();
     });
     SL.$('[data-nuevo]', root).addEventListener('click', function () { editHabit(null); });
     SL.$('[data-archivados]', root).addEventListener('click', function () { archivedModal(s); });
   };
 
   function deltaHTML(d) {
+    if (d === null) return '<span class="delta delta--flat">sin mes anterior para comparar</span>';
     if (Math.abs(d) < 0.005) return '<span class="delta delta--flat">sin cambios vs. mes anterior</span>';
     var up = d > 0;
     return '<span class="delta delta--' + (up ? 'up' : 'down') + '">' +

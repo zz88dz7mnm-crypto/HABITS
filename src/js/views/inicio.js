@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Inicio
+   Zenit · Inicio
    Lo que hace falta saber hoy. Nada más.
    ============================================================ */
 (function (SL) {

@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Piezas de interfaz
+   Zenit · Piezas de interfaz
    Íconos, helpers de DOM, toasts y modales.
    ============================================================ */
 (function (SL) {

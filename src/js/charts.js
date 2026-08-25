@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Motor de gráficos
+   Zenit · Motor de gráficos
    SVG escrito a mano, sin librerías. Reglas que sigue todo lo
    que se dibuja acá:
      · Una sola escala por gráfico. Nunca dos ejes Y.
@@ -143,7 +143,7 @@
       var data = opt.data || [];
       var f = frame(node, opt.height || 260);
       var svg = f.svg, w = f.w, h = f.h;
-      var m = { t: 18, r: 16, b: 26, l: 42 };
+      var m = { t: 22, r: 18, b: 30, l: 44 };
       var iw = Math.max(10, w - m.l - m.r), ih = Math.max(10, h - m.t - m.b);
       var id = 'ln' + (++uid);
 
@@ -158,15 +158,17 @@
       var X = function (day) { return m.l + ((day - 1) / Math.max(1, maxDay - 1)) * iw; };
       var Y = function (v) { return m.t + (1 - v) * ih; };
 
-      /* — grilla recesiva — */
+      /* — grilla recesiva —
+         Tres referencias alcanzan: 0, la mitad y el techo. Con cinco, la
+         grilla compite con el dato y el gráfico se ensucia. */
       var g = el('g', { 'stroke-width': 1 }, svg);
-      [0, 0.25, 0.5, 0.75, 1].forEach(function (v) {
+      [0, 0.5, 1].forEach(function (v) {
         el('line', {
           x1: m.l, x2: m.l + iw, y1: Y(v), y2: Y(v),
-          stroke: 'var(--border-soft)', 'stroke-dasharray': v === 0 ? '' : '2 5'
+          stroke: 'var(--border-soft)', 'stroke-dasharray': v === 0 ? '' : '2 6'
         }, g);
         el('text', {
-          x: m.l - 10, y: Y(v) + 4, 'text-anchor': 'end',
+          x: m.l - 12, y: Y(v) + 4, 'text-anchor': 'end',
           fill: 'var(--text-3)', 'font-size': 10, 'font-family': 'var(--font)'
         }, svg).textContent = Math.round(v * 100) + '%';
       });
@@ -482,7 +484,22 @@
 
       data.forEach(function (d, i) {
         var x = m.l + slot * i + (slot - bw) / 2;
-        var v = d.rate === null || d.rate === undefined ? 0 : d.rate;
+        var sinDato = d.rate === null || d.rate === undefined;
+        var v = sinDato ? 0 : d.rate;
+
+        if (sinDato && !d.future) {
+          // Sin datos no es cero: se marca la base y se aclara, en vez de
+          // dibujar un riel lleno que se lee como un 100% vacío.
+          el('line', {
+            x1: x, x2: x + bw, y1: m.t + ih, y2: m.t + ih,
+            stroke: 'var(--border)', 'stroke-width': 2, 'stroke-linecap': 'round'
+          }, svg);
+          el('text', {
+            x: x + bw / 2, y: h - 8, 'text-anchor': 'middle',
+            fill: 'var(--text-3)', 'font-size': 10, 'font-family': 'var(--font)', opacity: .55
+          }, svg).textContent = d.label;
+          return;
+        }
         var bh = Math.max(v > 0 ? 3 : 0, v * ih);
         var y = m.t + ih - bh;
         var col = d.color ? habitColor(d.color) : 'var(--accent)';
@@ -490,7 +507,7 @@
         // Riel de fondo: muestra cuánto faltó, sin gritar.
         el('rect', {
           x: x, y: m.t, width: bw, height: ih, rx: 4,
-          fill: 'var(--border-soft)', opacity: d.future ? .45 : .8
+          fill: 'var(--border-soft)', opacity: d.future ? .3 : .55
         }, svg);
 
         if (d.future) {
@@ -563,7 +580,9 @@
       var pt = function (i, v) { return [cx + Math.cos(ang(i)) * R * v, cy + Math.sin(ang(i)) * R * v]; };
 
       /* — Telaraña recesiva — */
-      [0.25, 0.5, 0.75, 1].forEach(function (lv) {
+      /* Tres anillos en vez de cuatro: la telaraña tiene que orientar, no
+         llenar el gráfico de líneas. */
+      [0.33, 0.66, 1].forEach(function (lv) {
         var p = [];
         for (var i = 0; i < n; i++) p.push(pt(i, lv).join(','));
         el('polygon', {

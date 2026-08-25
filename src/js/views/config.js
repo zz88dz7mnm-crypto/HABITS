@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Configuración
+   Zenit · Configuración
    Todo lo ajustable, en un solo lugar.
    ============================================================ */
 (function (SL) {
@@ -85,13 +85,13 @@
             }).join('') + '</div>')
       ) +
 
-      seccion('Instalación', 'Cómo tener StarkLab como app',
+      seccion('Instalación', 'Cómo tener Zenit como app',
         '<div id="pwa-estado"></div>'
       ) +
 
       seccion('Compartir con otros', 'Por qué todavía no se puede',
         '<p class="onboard__p" style="font-size:var(--fs-sm)">Compartir progreso entre personas necesita un ' +
-        'servidor y cuentas. Hoy StarkLab corre entero en tu dispositivo, que es justo lo que lo hace ' +
+        'servidor y cuentas. Hoy Zenit corre entero en tu dispositivo, que es justo lo que lo hace ' +
         'andar sin señal y lo que garantiza que tus datos no salgan de acá. Cuando exista, el journaling ' +
         'va a seguir siendo privado aunque el resto se comparta.</p>'
       ) +
@@ -135,7 +135,7 @@
     pwaHost.innerHTML =
       '<div style="font-size:var(--fs-sm);color:var(--text-2);line-height:1.65">' +
       (inst
-        ? '✅ Ya está instalada: estás usando StarkLab como app, en pantalla completa y con soporte offline.'
+        ? '✅ Ya está instalada: estás usando Zenit como app, en pantalla completa y con soporte offline.'
         : SL.notify.isIOS()
           ? 'En iPhone: tocá <b>Compartir</b> y después <b>“Agregar a pantalla de inicio”</b>. Es el único camino en iOS, y también el único que habilita las notificaciones.'
           : 'En el menú del navegador vas a ver <b>“Instalar app”</b> o <b>“Agregar a pantalla de inicio”</b>. Queda con ícono propio, abre sin barra del navegador y funciona sin señal.') +
@@ -231,7 +231,7 @@
       var blob = new Blob([SL.store.export()], { type: 'application/json' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'starklab-' + D.iso(D.today()) + '.json';
+      a.download = 'zenit-' + D.iso(D.today()) + '.json';
       a.click();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
       SL.toast('Datos exportados');

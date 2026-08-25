@@ -1,5 +1,5 @@
 /* ============================================================
-   StarkLab Web · Estado
+   Zenit · Estado
    Todo vive en el dispositivo (localStorage). No hay servidor
    ni cuenta: los datos son del usuario y se pueden exportar o
    borrar enteros desde Configuración.
@@ -7,7 +7,8 @@
 (function (SL) {
   'use strict';
 
-  var KEY = 'starklab:v1';
+  var KEY = 'zenit:v2';
+  var KEY_VIEJA = 'starklab:v1';   // la app se llamaba StarkLab antes
 
   /* — Colores de hábito/categoría —
      El orden de asignación no es el del documento: está calculado para que
@@ -228,6 +229,15 @@
   function load() {
     try {
       var raw = localStorage.getItem(KEY);
+      /* La app cambió de nombre. Si hay datos guardados bajo la clave vieja
+         se traen una sola vez, para que nadie pierda lo que venía cargando. */
+      if (!raw) {
+        var viejo = localStorage.getItem(KEY_VIEJA);
+        if (viejo) {
+          try { localStorage.setItem(KEY, viejo); localStorage.removeItem(KEY_VIEJA); raw = viejo; }
+          catch (e) { raw = viejo; }
+        }
+      }
       if (!raw) return estadoVacio();
       var s = JSON.parse(raw);
       if (!s || typeof s !== 'object') return estadoVacio();
