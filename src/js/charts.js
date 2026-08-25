@@ -170,12 +170,14 @@
           fill: 'var(--text-3)', 'font-size': 10, 'font-family': 'var(--font)'
         }, svg).textContent = Math.round(v * 100) + '%';
       });
-      // Eje X: cada 3 días, para que no se pisen las etiquetas.
-      for (var d = 1; d <= maxDay; d += 3) {
+      /* Eje X: se espacian las marcas para que nunca se pisen, sea el mes
+         de 31 días o una ventana de 90. */
+      var paso = Math.max(1, Math.ceil(maxDay / 11));
+      for (var d = 1; d <= maxDay; d += paso) {
         el('text', {
           x: X(d), y: h - 8, 'text-anchor': 'middle',
           fill: 'var(--text-3)', 'font-size': 10, 'font-family': 'var(--font)'
-        }, svg).textContent = d;
+        }, svg).textContent = opt.xLabel ? opt.xLabel(d) : d;
       }
 
       if (!real.length) {

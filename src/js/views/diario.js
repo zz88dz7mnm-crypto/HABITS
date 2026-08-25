@@ -10,13 +10,15 @@
   var query = '';
   var range = 30;
 
+  /* Las etiquetas contestan una sola pregunta: qué te movió el ánimo hoy.
+     Con el tiempo permiten ver qué área aparece siempre en los días malos. */
   var TAGS = [
-    { k: 'trabajo',     l: 'Trabajo',     c: 'violeta' },
-    { k: 'plata',       l: 'Plata',       c: 'ambar' },
-    { k: 'sueño',       l: 'Sueño',       c: 'cian' },
-    { k: 'relaciones',  l: 'Relaciones',  c: 'rosa' },
-    { k: 'salud',       l: 'Salud',       c: 'verde' },
-    { k: 'ejercicio',   l: 'Ejercicio',   c: 'coral' }
+    { k: 'trabajo',     l: 'Trabajo',     c: 'violeta', d: 'Estudio, laburo, entregas' },
+    { k: 'plata',       l: 'Plata',       c: 'ambar',   d: 'Gastos, cobros, cuentas' },
+    { k: 'sueño',       l: 'Sueño',       c: 'cian',    d: 'Cuánto y cómo dormiste' },
+    { k: 'relaciones',  l: 'Relaciones',  c: 'rosa',    d: 'Familia, pareja, amigos' },
+    { k: 'salud',       l: 'Salud',       c: 'verde',   d: 'Cómo te sentiste físicamente' },
+    { k: 'ejercicio',   l: 'Ejercicio',   c: 'coral',   d: 'Entrenaste o te movés poco' }
   ];
 
   SL.views = SL.views || {};
@@ -24,7 +26,10 @@
     var todayKey = D.iso(D.today());
     var hoy = s.journal.filter(function (e) { return e.date === todayKey; })[0];
     var from = D.addDays(D.today(), -(range - 1));
-    var serie = C.moodSeries(s, from, D.today());
+    var serie = C.moodSeries(s, from, D.today()).map(function (p, i) {
+      p.day = i + 1;
+      return p;
+    });
 
     var withText = s.journal.filter(function (e) { return e.text && e.text.trim(); })
       .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
@@ -64,10 +69,12 @@
           '<textarea class="textarea" data-texto placeholder="¿Qué pasó hoy? Escribí lo que sea, aunque sea una línea.">' +
             esc(hoy && hoy.text ? hoy.text : '') + '</textarea>' +
         '</div>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--s4)" data-tags>' +
+        '<div class="field__l" style="margin-bottom:8px">¿Qué te movió el ánimo hoy?</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--s5)" data-tags>' +
           TAGS.map(function (t) {
             var on = hoy && hoy.tags && hoy.tags.indexOf(t.k) !== -1;
-            return '<button class="tag" data-t="' + t.k + '" style="--cc:var(--c-' + t.c + ');cursor:pointer;' +
+            return '<button class="tag" data-t="' + t.k + '" title="' + esc(t.d) + '" ' +
+              'style="--cc:var(--c-' + t.c + ');cursor:pointer;' +
               (on ? 'outline:2px solid var(--cc)' : 'opacity:.6') + '">' +
               '<span class="dot-c"></span>' + t.l + '</button>';
           }).join('') +
@@ -125,11 +132,34 @@
       '</div>';
 
     /* — cruce ánimo / hábitos —
-       Dos series, una sola escala 0–100. El ánimo (1–5) se lleva a
-       porcentaje: nunca dos ejes Y, que es la forma más fácil de mentir
-       con un gráfico. */
-    var host = SL.$('[data-cruce]', root);
-    drawCross(host, serie);
+       Ambas series en media móvil de 7 días y en la misma escala de 0 a 100.
+       El ánimo diario salta entre cinco valores fijos y el cumplimiento
+       entre 0 y 100: crudos no se pueden comparar. Promediados, sí.
+
+       Nunca dos ejes Y: es la forma más fácil de mentir con un gráfico. */
+    var anim = mediaMovil(serie.map(function (p) {
+      return { day: p.day, rate: p.mood ? (p.mood - 1) / 4 : null, date: p.date };
+    }), 7);
+    var cumpl = mediaMovil(serie.map(function (p) {
+      return { day: p.day, rate: p.rate, date: p.date };
+    }), 7);
+
+    SL.charts.line(SL.$('[data-cruce]', root), {
+      data: cumpl,
+      series: [{ key: 'animo', label: 'Ánimo', color: 'var(--c-violeta)', data: anim, activa: true }],
+      height: 250,
+      tipTitle: function (p) {
+        var d = D.parse(p.date || serie[p.day - 1].date);
+        return d.getDate() + ' de ' + SL.MESES[d.getMonth()];
+      },
+      tipNota: 'hábitos, media de 7 días',
+      xLabel: function (i) {
+        var p = serie[i - 1];
+        if (!p) return '';
+        var dd = D.parse(p.date);
+        return dd.getDate() + '/' + (dd.getMonth() + 1);
+      }
+    });
 
     /* — distribución de ánimo — */
     var counts = [0, 0, 0, 0, 0];
@@ -213,6 +243,21 @@
     });
   };
 
+  /* Media móvil sobre una serie que puede tener huecos. Los días sin dato
+     no cuentan ni como cero ni como corte: simplemente no participan del
+     promedio, y si la ventana entera está vacía se devuelve null para que
+     la línea se interrumpa. */
+  function mediaMovil(datos, win) {
+    return datos.map(function (p, i) {
+      var n = 0, suma = 0;
+      for (var k = Math.max(0, i - win + 1); k <= i; k++) {
+        if (datos[k].rate === null || datos[k].rate === undefined) continue;
+        suma += datos[k].rate; n++;
+      }
+      return { day: p.day, date: p.date, future: false, rate: n ? suma / n : null };
+    });
+  }
+
   /* Correlación de Pearson entre ánimo y cumplimiento, sólo sobre los días
      que tienen las dos cosas. Se muestra en palabras, no como número suelto. */
   function corr(serie) {
@@ -239,97 +284,6 @@
     return '<p style="margin-top:var(--s4);padding:var(--s3) var(--s4);border-radius:var(--r);' +
       'background:var(--card-2);border:1px solid var(--border);font-size:var(--fs-sm);line-height:1.6;color:' + color + '">' +
       esc(txt) + ' <span style="color:var(--text-3)">(r = ' + r.toFixed(2) + ' sobre ' + n + ' días)</span></p>';
-  }
-
-  /* Gráfico de dos series en una sola escala. */
-  function drawCross(node, serie) {
-    node.setAttribute('data-chart', 'cross');
-    var NS = 'http://www.w3.org/2000/svg';
-
-    function draw() {
-      node.innerHTML = '';
-      var w = node.clientWidth || 600, h = 250;
-      var svg = document.createElementNS(NS, 'svg');
-      svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-      svg.setAttribute('width', w); svg.setAttribute('height', h);
-      svg.setAttribute('role', 'img');
-      svg.setAttribute('aria-label', 'Ánimo y cumplimiento de hábitos en la misma escala');
-      node.appendChild(svg);
-
-      function add(tag, attrs, p) {
-        var n = document.createElementNS(NS, tag);
-        for (var k in attrs) if (attrs[k] !== null) n.setAttribute(k, attrs[k]);
-        (p || svg).appendChild(n);
-        return n;
-      }
-
-      var m = { t: 16, r: 14, b: 26, l: 40 };
-      var iw = w - m.l - m.r, ih = h - m.t - m.b;
-      var X = function (i) { return m.l + (i / Math.max(1, serie.length - 1)) * iw; };
-      var Y = function (v) { return m.t + (1 - v) * ih; };
-
-      [0, .25, .5, .75, 1].forEach(function (v) {
-        add('line', { x1: m.l, x2: m.l + iw, y1: Y(v), y2: Y(v),
-          stroke: 'var(--border-soft)', 'stroke-dasharray': v === 0 ? '' : '2 5' });
-        add('text', { x: m.l - 9, y: Y(v) + 4, 'text-anchor': 'end', fill: 'var(--text-3)',
-          'font-size': 10, 'font-family': 'var(--font)' }).textContent = Math.round(v * 100);
-      });
-
-      function seg(getter, color, dash) {
-        var runs = [], cur = [];
-        serie.forEach(function (p, i) {
-          var v = getter(p);
-          if (v === null || v === undefined) { if (cur.length) { runs.push(cur); cur = []; } return; }
-          cur.push([X(i), Y(v)]);
-        });
-        if (cur.length) runs.push(cur);
-        runs.forEach(function (pts) {
-          if (pts.length === 1) { add('circle', { cx: pts[0][0], cy: pts[0][1], r: 2.5, fill: color }); return; }
-          var d = 'M' + pts.map(function (p) { return p[0] + ',' + p[1]; }).join('L');
-          add('path', { d: d, fill: 'none', stroke: color, 'stroke-width': 2,
-            'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': dash || null });
-        });
-      }
-      seg(function (p) { return p.rate; }, 'var(--accent)');
-      seg(function (p) { return p.mood ? (p.mood - 1) / 4 : null; }, 'var(--c-violeta)');
-
-      // Eje X: primero, medio y último
-      [0, Math.floor(serie.length / 2), serie.length - 1].forEach(function (i) {
-        if (!serie[i]) return;
-        var d = D.parse(serie[i].date);
-        add('text', { x: X(i), y: h - 8, 'text-anchor': i === 0 ? 'start' : i === serie.length - 1 ? 'end' : 'middle',
-          fill: 'var(--text-3)', 'font-size': 10, 'font-family': 'var(--font)' })
-          .textContent = d.getDate() + '/' + (d.getMonth() + 1);
-      });
-
-      // Hover
-      var cross = add('line', { y1: m.t, y2: m.t + ih, stroke: 'var(--text-3)', 'stroke-width': 1,
-        'stroke-dasharray': '3 3', opacity: 0 });
-      var hit = add('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent', style: 'cursor:crosshair' });
-      hit.addEventListener('mousemove', function (e) {
-        var box = svg.getBoundingClientRect();
-        var px = (e.clientX - box.left) * (w / box.width);
-        var i = Math.round(((px - m.l) / iw) * (serie.length - 1));
-        i = Math.max(0, Math.min(serie.length - 1, i));
-        var p = serie[i];
-        cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.setAttribute('opacity', .5);
-        var dd = D.parse(p.date);
-        var mood = SL.MOODS.filter(function (x) { return x.v === p.mood; })[0];
-        SL.charts.showTip(
-          '<b>' + dd.getDate() + '/' + (dd.getMonth() + 1) + '</b>' +
-          '<span class="chart-tip__v">Hábitos: ' + (p.rate === null ? '—' : Math.round(p.rate * 100) + '%') + '</span>' +
-          '<span class="chart-tip__v">Ánimo: ' + (mood ? mood.e + ' ' + mood.l : 'sin registro') + '</span>',
-          box.left + (X(i) / w) * box.width, box.top + (m.t / h) * box.height + 30);
-      });
-      hit.addEventListener('mouseleave', function () { cross.setAttribute('opacity', 0); SL.charts.hideTip(); });
-    }
-
-    if (window.ResizeObserver) {
-      var ro = new ResizeObserver(function () { requestAnimationFrame(draw); });
-      ro.observe(node);
-    }
-    node._redraw = draw;
-    draw();
   }
 
 })(window.SL = window.SL || {});
