@@ -36,11 +36,58 @@ button { background: none; border: 0; cursor: pointer; padding: 0; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* Anillo doble: acento afuera y color de fondo adentro. El aro de fondo
+   despega el acento del control, que es lo que hace que el foco se lea
+   igual sobre una card clara que sobre el fondo oscuro; un aro suelto de
+   acento se pierde contra un botón primario, que ya es del mismo color.
+   El outline queda transparente a propósito: en contraste forzado el
+   navegador tira las sombras y ese outline es el único que sobrevive. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid transparent;
   outline-offset: 2px;
-  border-radius: var(--r-sm);
+  /* app.css se carga después y varias clases de estado ya escriben
+     box-shadow (.btn--primary, .cell.is-today, .seg__b.is-on): sin la
+     marca el foco se apagaría justo en los controles más usados. */
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent) !important;
+  /* El anillo se dibuja fuera de la caja, así que lo tapa el fondo de
+     cualquier vecino que venga después en el DOM (filas, celdas, botones
+     pegados). Subirlo un escalón alcanza: queda por debajo de la columna
+     fija de la grilla (z-index 2) y de las barras. */
+  position: relative;
+  z-index: 1;
 }
+/* Ojo: acá no va border-radius. Redondear al enfocar le cambiaba la forma
+   a las píldoras y a los switches; la sombra ya sigue el radio del propio
+   control. */
+
+/* — Salto al contenido — */
+/* Con teclado, llegar al contenido cuesta pasar la marca, doce ítems de
+   navegación y la barra superior. Este enlace es el primer tabulable de
+   la página y saltea todo eso; #vista ya tiene tabindex="-1" para poder
+   recibir el foco. */
+.skip-link {
+  position: fixed;
+  top: max(var(--s3), env(safe-area-inset-top));
+  left: max(var(--s3), env(safe-area-inset-left));
+  /* Por encima de la pantalla de arranque (500) y de los toasts (300):
+     un atajo que aparece tapado no es un atajo. */
+  z-index: 600;
+  padding: 10px var(--s4);
+  border-radius: var(--r);
+  border: 1px solid var(--accent);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--sh-2);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  text-decoration: none;
+  /* Se esconde con transform y no con display/visibility: así sigue
+     estando en el orden de tabulación en vez de desaparecer del todo. */
+  transform: translateY(calc(-100% - var(--s6)));
+  transition: transform var(--t) var(--e-out);
+}
+.skip-link:focus { transform: none; }
+.skip-link:hover { text-decoration: none; }
 
 ::selection { background: rgba(255,59,59,.28); color: var(--text); }
 

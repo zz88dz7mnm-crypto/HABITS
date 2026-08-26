@@ -277,8 +277,14 @@
     },
     on: function (fn) { listeners.push(fn); return function () { listeners = listeners.filter(function (f) { return f !== fn; }); }; },
     emit: emit,
-    /* Muta el estado y avisa a la UI en un solo paso. */
-    update: function (fn) { fn(state); save(); emit(); },
+    /* Muta el estado y avisa a la UI en un solo paso.
+       Con { quieto: true } guarda pero no avisa: lo usa quien ya actualizó
+       la pantalla por su cuenta y no quiere pagar un redibujado entero. */
+    update: function (fn, opts) {
+      fn(state);
+      save();
+      if (!(opts && opts.quieto)) emit();
+    },
     export: function () { return JSON.stringify(state, null, 2); },
     import: function (json) {
       var s = JSON.parse(json);

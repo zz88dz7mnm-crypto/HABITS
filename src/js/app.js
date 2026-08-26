@@ -166,7 +166,10 @@
     badges(s);
   };
 
-  /* Contadores en la navegación: sólo cuando hay algo que hacer. */
+  /* Contadores en la navegación: sólo cuando hay algo que hacer.
+     Se expone porque las vistas que actualizan a mano necesitan refrescarlo
+     sin disparar un redibujado entero. */
+  SL.badges = badges;
   function badges(s) {
     var t = SL.date.today(), key = SL.date.iso(t);
     var due = SL.compute.activeHabits(s).filter(function (h) { return SL.compute.due(h, t); });
@@ -240,6 +243,22 @@
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(function () {});
+      /* Cuando el service worker activa una versión nueva avisa, y recién
+         ahí se ofrece recargar. Recargar solo, sin preguntar, tiraría a la
+         basura lo que la persona estuviera escribiendo. */
+      navigator.serviceWorker.addEventListener('message', function (e) {
+        if (!e.data || e.data.type !== 'version-nueva') return;
+        if (window.__zenitArrancoLimpio) return;   // no avisar en la primera carga
+        SL.toast('Hay una versión nueva. Tocá acá para actualizar.');
+        var t = document.querySelector('.toast:last-child');
+        if (t) {
+          t.style.cursor = 'pointer';
+          t.addEventListener('click', function () { location.reload(); });
+        }
+      });
+      // La primera instalación también dispara el aviso, y ahí no aplica.
+      window.__zenitArrancoLimpio = !navigator.serviceWorker.controller;
+      setTimeout(function () { window.__zenitArrancoLimpio = false; }, 4000);
     }
 
     /* Teléfono apoyado de costado: se ofrece el Modo Pausa en vez de

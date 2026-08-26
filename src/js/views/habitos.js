@@ -12,6 +12,11 @@
   var modo = 'total';    // 'total' = sólo el conjunto · 'habitos' = una línea por hábito
   var visibles = [];     // hábitos encendidos en el modo por hábito
   var semanaHabito = null; // qué hábito mira el gráfico semanal (null = todos)
+  /* Marcar una celda redibujaba las 248 de la grilla más los dos gráficos:
+     268 ms en un teléfono de gama media, que se sienten. La celda ya se
+     pinta sola al tocarla, así que en vez de rehacer todo se actualiza a
+     mano lo poco que cambió. Lo define render() en cada pasada. */
+  var refrescoParcial = null;
 
   function monthLabel(d) { return SL.MESES[d.getMonth()] + ' ' + d.getFullYear(); }
 
@@ -137,6 +142,31 @@
       '</div>';
 
     /* ————— gráfico de progreso ————— */
+    function dibujarLinea(st) {
+      var s2 = st || s;
+      if (modo === 'total') {
+        SL.charts.line(SL.$('[data-chart-line]', root), {
+          data: C.monthSeries(s2, y, m),
+          compare: compare ? C.monthSeries(s2, prev.getFullYear(), prev.getMonth()) : null,
+          height: 280,
+          tipTitle: function (p) { return p.day + ' de ' + SL.MESES[m]; }
+        });
+      } else {
+        SL.charts.line(SL.$('[data-chart-line]', root), {
+          data: C.rolling(s2, null, y, m, 7),
+          series: habits.filter(function (h) { return visibles.indexOf(h.id) !== -1; })
+            .map(function (h) {
+              return { key: h.id, label: h.name, color: 'var(--c-' + h.color + ')',
+                       data: C.rolling(s2, h, y, m, 7), activa: true };
+            }),
+          atenuarPrincipal: visibles.length > 0,
+          height: 280,
+          tipTitle: function (p) { return 'Hasta el ' + p.day + ' de ' + SL.MESES[m]; },
+          tipNota: 'media de 7 días'
+        });
+      }
+    }
+
     if (modo === 'total') {
       SL.charts.line(SL.$('[data-chart-line]', root), {
         data: series,
@@ -240,6 +270,39 @@
         '<b style="flex:0 0 auto;min-width:52px;text-align:right">' + o.n + ' día' + (o.n === 1 ? '' : 's') + '</b>' +
       '</span>';
     }).join('') || '<div class="empty"><div class="empty__s">Todavía no hay hábitos.</div></div>';
+
+    /* Lo único que cambia al marcar una celda: la racha de esa fila, el
+       porcentaje del mes con su delta, los dos gráficos y el contador de la
+       navegación. Todo lo demás ya está bien en pantalla. */
+    refrescoParcial = function (hid) {
+      var st = SL.store.get();
+
+      var fila = SL.$('[data-row="' + hid + '"]', root);
+      var h = st.habits.filter(function (x) { return x.id === hid; })[0];
+      if (fila && h) {
+        var meta = SL.$('.hrow__meta', fila);
+        var n = C.streak(st, h);
+        if (meta) {
+          meta.innerHTML = (n > 0
+            ? '<span class="hrow__streak">' + SL.icon('fuego') + n + '</span> · ' : '') +
+            esc(freqLabel(h));
+        }
+      }
+
+      var nuevoRate = C.monthRate(st, y, m);
+      var nuevoPrev = C.monthRate(st, prev.getFullYear(), prev.getMonth());
+      var pct = SL.$('.u-grad-text', root);
+      if (pct) pct.textContent = nuevoRate === null ? '—' : Math.round(nuevoRate * 100) + '%';
+      var sub = pct && pct.nextElementSibling;
+      if (sub) {
+        sub.innerHTML = deltaHTML(
+          (nuevoRate === null || nuevoPrev === null) ? null : nuevoRate - nuevoPrev);
+      }
+
+      dibujarLinea(st);
+      drawWeek();
+      if (SL.badges) SL.badges(st);
+    };
 
     /* ————— acciones ————— */
     SL.$$('[data-mes]', root).forEach(function (b) {
@@ -429,7 +492,9 @@
       if (!s.checks[hid]) s.checks[hid] = {};
       if (on) s.checks[hid][key] = true;
       else delete s.checks[hid][key];
-    });
+    }, { quieto: true });
+    if (refrescoParcial) refrescoParcial(hid);
+    else SL.store.emit();
   }
 
   /* ————————————————— nota del día ————————————————— */
