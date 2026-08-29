@@ -15,7 +15,7 @@ const css = ['src/css/tokens.css', 'src/css/base.css', 'src/css/app.css']
 
 const js = [
   'src/js/ui.js', 'src/js/store.js', 'src/js/compute.js', 'src/js/charts.js',
-  'src/js/notify.js',
+  'src/js/notify.js', 'src/js/voice.js',
   'src/js/views/inicio.js', 'src/js/views/habitos.js', 'src/js/views/finanzas.js',
   'src/js/views/entrenamiento.js', 'src/js/views/diario.js', 'src/js/views/progreso.js',
   'src/js/views/pausa.js', 'src/js/views/otras.js', 'src/js/views/config.js',

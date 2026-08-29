@@ -131,6 +131,9 @@
     var v = SL.$('[data-view]');
     if (v) v.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+    // El micrófono flotante no tiene sentido dentro de la escena inmersiva
+    // del Modo Pausa: se esconde ahí y reaparece en todo lo demás.
+    if (SL.voiceFAB) SL.voiceFAB.ocultar(id === 'pausa');
   };
 
   SL.render = function () {
@@ -228,12 +231,18 @@
       var tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       var map = { '1': 'inicio', '2': 'habitos', '3': 'finanzas', '4': 'entrenamiento',
-                  '5': 'diario', '6': 'progreso', 'p': 'pausa', 'c': 'config' };
+                  '5': 'journaling', '6': 'progreso', 'p': 'pausa', 'c': 'config' };
       if (map[e.key]) { e.preventDefault(); SL.go(map[e.key]); }
     });
 
     SL.notify.schedule();
     SL.notify.checkBudget();
+
+    // El micrófono de carga rápida: siempre a mano, salvo en Modo Pausa.
+    if (SL.voiceFAB) {
+      SL.voiceFAB.montar();
+      SL.voiceFAB.ocultar(current === 'pausa');
+    }
 
     // Guardar la propuesta de instalación para ofrecerla desde Configuración.
     window.addEventListener('beforeinstallprompt', function (e) {

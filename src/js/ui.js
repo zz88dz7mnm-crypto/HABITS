@@ -43,6 +43,7 @@
     dolar:     '<path d="M12 2.5v19"/><path d="M16.5 6.5H9.8a3.3 3.3 0 0 0 0 6.6h4.4a3.3 3.3 0 0 1 0 6.6H7"/>',
     check:     '<path d="m4.5 12.5 5 5 10-11"/>',
     play:      '<path d="M7 4.5 19 12 7 19.5Z"/>',
+    mic:       '<rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M9 21h6"/>',
     pause2:    '<path d="M8.5 5v14M15.5 5v14"/>',
     reload:    '<path d="M3.5 12a8.5 8.5 0 1 1 2.6 6.1"/><path d="M3 19.5V14h5.5"/>',
     nota:      '<path d="M5 4.5h14v11l-4.5 4.5H5Z"/><path d="M19 15.5h-4.5V20"/>',
