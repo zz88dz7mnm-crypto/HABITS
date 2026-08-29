@@ -416,14 +416,20 @@
         a0 += sweep;
       });
 
-      /* — Centro: total, o el detalle de la porción con el mouse encima — */
+      /* — Centro: total, o el detalle de la porción con el mouse encima —
+         El número del medio usa la serif de marca: es EL dato de esta
+         tarjeta, el mismo trato que lleva el número protagonista en el
+         resto de la app. Con la serif el tamaño baja un poco (sus formas
+         son más altas y anchas que la grotesca a igual font-size) para que
+         siga entrando en el agujero de la dona sin tocar el anillo. */
       var tTop = el('text', {
         x: cx, y: cy - 9, 'text-anchor': 'middle', fill: 'var(--text-3)',
         'font-size': 10, 'font-family': 'var(--font)', 'letter-spacing': '.1em'
       }, svg);
       var tMid = el('text', {
-        x: cx, y: cy + 12, 'text-anchor': 'middle', fill: 'var(--text)',
-        'font-size': Math.max(15, Math.min(24, R * 0.34)), 'font-weight': 700, 'font-family': 'var(--font)'
+        x: cx, y: cy + 11, 'text-anchor': 'middle', fill: 'var(--text)',
+        'font-size': Math.max(16, Math.min(26, R * 0.36)), 'font-weight': 400,
+        'font-family': 'var(--font-serif)'
       }, svg);
       var tBot = el('text', {
         x: cx, y: cy + 29, 'text-anchor': 'middle', fill: 'var(--text-3)',

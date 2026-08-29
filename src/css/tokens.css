@@ -47,8 +47,14 @@
   --night-text:    #7C8A9A;
   --night-hour:    #EEF2F5;
 
-  /* — Tipografía — */
+  /* — Tipografía —
+     Dos voces, no una. Inter lleva la interfaz: rótulos, cuerpo, controles.
+     La serif queda reservada para el número que importa en cada pantalla —
+     el % del mes, lo libre para gastar, el índice general — el mismo trato
+     que ya tenía la hora del Modo Pausa. Es la firma que recorre toda la
+     app: no es la tipografía de un dashboard genérico, es la de Zenit. */
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   --fs-display: clamp(2rem, 1.2rem + 3.4vw, 3.25rem);
@@ -66,12 +72,17 @@
   --s9: 56px; --s10: 72px;
 
   /* — Radios — */
-  --r-sm: 6px; --r: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 24px; --r-full: 999px;
+  --r-sm: 6px; --r: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 24px; --r-hero: 28px; --r-full: 999px;
 
-  /* — Elevación — */
+  /* — Elevación —
+     --sh-* son la sombra que tira la tarjeta hacia afuera. --edge es la luz
+     que entra por arriba, hacia adentro: 1px que separa la tarjeta del
+     fondo sin necesitar un borde más marcado. Las dos juntas son lo que
+     hace que un panel se sienta con volumen y no pegado al fondo. */
   --sh-1: 0 1px 2px rgba(0,0,0,.4);
   --sh-2: 0 4px 16px -4px rgba(0,0,0,.55);
   --sh-3: 0 18px 48px -12px rgba(0,0,0,.7);
+  --edge: inset 0 1px 0 rgba(255,255,255,.045);
   --glow: 0 0 0 1px rgba(255,59,59,.35), 0 8px 28px -8px rgba(255,59,59,.45);
 
   /* — Movimiento — */
@@ -115,6 +126,9 @@
   --sh-1: 0 1px 2px rgba(16,20,24,.06);
   --sh-2: 0 4px 16px -4px rgba(16,20,24,.12);
   --sh-3: 0 18px 48px -12px rgba(16,20,24,.18);
+  /* En claro la luz no entra por arriba, se pierde por abajo: un filo
+     inferior tenue en vez del resplandor superior del tema oscuro. */
+  --edge: inset 0 -1px 0 rgba(16,20,24,.035);
 }
 
 /* Acentos alternativos (Configuración → Apariencia) */

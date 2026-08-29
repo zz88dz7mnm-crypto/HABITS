@@ -9,7 +9,10 @@
 .side {
   position: sticky; top: 0; height: 100dvh;
   display: flex; flex-direction: column;
-  background: var(--bg-elev);
+  /* Un degradé apenas perceptible en vez de un plano: la barra lateral se
+     lee con volumen propio en lugar de quedar pegada como una pestaña
+     sobre el fondo. */
+  background: linear-gradient(180deg, var(--bg-elev) 0%, color-mix(in oklab, var(--bg-elev) 92%, black) 100%);
   border-right: 1px solid var(--border);
   padding: var(--s4) var(--s3);
   gap: var(--s2); overflow-y: auto;
@@ -19,7 +22,12 @@
   padding: var(--s2) var(--s3) var(--s5);
   font-weight: 800; font-size: 1.05rem; letter-spacing: -.02em;
 }
-.side__brand svg { width: 22px; height: 22px; flex: none; }
+.side__brand svg {
+  width: 22px; height: 22px; flex: none;
+  /* El resplandor de marca del boot screen, en miniatura: la marca no vive
+     sólo en la pantalla de arranque, recorre toda la app. */
+  filter: drop-shadow(0 0 7px color-mix(in oklab, var(--accent) 55%, transparent));
+}
 .side__group { margin-top: var(--s4); }
 .side__label { padding: var(--s2) var(--s3); }
 
@@ -91,8 +99,31 @@
 .card {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--r-lg); padding: clamp(var(--s5), 2vw, 30px);
+  /* --edge simula el filo de luz de un panel real apoyado sobre el fondo:
+     sin ella la tarjeta se ve pegada, como un rectángulo de color y nada
+     más. Es sutil a propósito — la sombra vive afuera, esto vive adentro. */
+  box-shadow: var(--edge);
 }
 .card--flush { padding: 0; overflow: hidden; }
+
+/* El número protagonista de cada pantalla: serif, no sans — el mismo trato
+   que ya tenía la hora del Modo Pausa, ahora recorriendo toda la app. Es
+   la firma que distingue a Zenit de un dashboard genérico. */
+.hero-num { display: grid; gap: 6px; }
+.hero-num__label {
+  font-size: var(--fs-xs); font-weight: 650; color: var(--text-2);
+  display: flex; align-items: center; gap: 8px;
+}
+.hero-num__value {
+  font-family: var(--font-serif); font-weight: 400;
+  font-size: clamp(2.4rem, 1.5rem + 3vw, 4.2rem);
+  line-height: .95; letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums lining-nums;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.hero-num__value.is-neg { background: none; -webkit-text-fill-color: var(--err); color: var(--err); }
+.hero-num__sub { color: var(--text-2); font-size: var(--fs-sm); line-height: 1.5; }
 .card__head {
   display: flex; align-items: center; gap: var(--s3);
   margin-bottom: var(--s5); flex-wrap: wrap;
@@ -306,10 +337,12 @@ button svg, .tag svg, .row__t svg { width: 1em; height: 1em; }
   border: 1px solid var(--border);
   box-shadow: var(--sh-3);
   font-size: var(--fs-xs); color: var(--text);
-  opacity: 0; transition: opacity .13s var(--e-out);
+  opacity: 0; transform: translateY(3px) scale(.97);
+  transform-origin: bottom center;
+  transition: opacity .13s var(--e-out), transform .13s var(--e-out);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 }
-.chart-tip.is-on { opacity: 1; }
+.chart-tip.is-on { opacity: 1; transform: translateY(0) scale(1); }
 .chart-tip b { font-weight: 700; }
 .chart-tip__v { color: var(--text-2); }
 .chart-tip__note {

@@ -182,4 +182,40 @@
     { v: 5, e: '😄', l: 'Excelente' }
   ];
 
+  /* — El número que importa —
+     Cada pantalla tiene un número protagonista: el % del mes, lo libre
+     para gastar, el índice general. En vez de que aparezca de golpe,
+     cuenta hasta ahí — es la firma que hace que el dato se sienta pesado,
+     no un texto más. Respeta prefers-reduced-motion mostrando el valor
+     final directo, sin arrancar una animación que el usuario pidió no ver.
+
+     `el`: el nodo de texto. `to`: el valor final. `opts.from` (default 0),
+     `opts.duration` en ms (default 850), `opts.format(v)` para el string
+     final (por defecto redondea). Reentrante: si se llama de nuevo sobre
+     el mismo nodo mientras cuenta, cancela la cuenta anterior — si no, dos
+     redibujados seguidos dejarían dos animaciones peleando por el texto. */
+  SL.countUp = function (el, to, opts) {
+    if (!el) return;
+    opts = opts || {};
+    var from = opts.from === undefined ? 0 : opts.from;
+    var dur = opts.duration === undefined ? 850 : opts.duration;
+    var fmt = opts.format || function (v) { return String(Math.round(v)); };
+
+    if (el.__countUpRaf) cancelAnimationFrame(el.__countUpRaf);
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || to === null || to === undefined) {
+      el.textContent = to === null || to === undefined ? '—' : fmt(to);
+      return;
+    }
+    var t0 = null;
+    function paso(ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur);
+      var suave = 1 - Math.pow(1 - p, 3);           // ease-out cúbico: arranca rápido, llega despacio
+      el.textContent = fmt(from + (to - from) * suave);
+      el.__countUpRaf = p < 1 ? requestAnimationFrame(paso) : null;
+    }
+    el.__countUpRaf = requestAnimationFrame(paso);
+  };
+
 })(window.SL = window.SL || {});
